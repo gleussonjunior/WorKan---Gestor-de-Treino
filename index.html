@@ -82,17 +82,17 @@
 
   /* Board */
   .board{
-    flex:1; overflow-x:auto; overflow-y:auto; display:flex; gap:0;
+    flex:1; overflow-x:auto; overflow-y:auto; display:flex; gap:12px;
     padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 90px calc(16px + env(safe-area-inset-left));
     align-items:flex-start;
   }
   .column{
-    background:var(--surface); border-right:1px solid var(--border); border-bottom:1px solid var(--border);
+    background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius);
     flex:1 1 220px; min-width:190px; max-width:290px; display:flex; flex-direction:column;
-    transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+    box-shadow: 0 1px 4px rgba(20,20,30,0.06);
+    transition: opacity 0.15s ease, transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
   }
-  .column:first-child{ border-left:1px solid var(--border); }
-  .column.dragover{ background:#F4F9FE; }
+  .column.dragover{ border-color:#4A90D9; background:#F4F9FE; }
   .col-header{
     padding:7px 8px 6px; display:flex; align-items:center; gap:5px;
     border-bottom:1px solid var(--border); flex-shrink:0;
@@ -282,6 +282,7 @@
   @media (orientation: landscape) and (max-width: 950px){
     .board{
       padding:calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 64px calc(14px + env(safe-area-inset-left));
+      gap:8px;
     }
     .column{ flex:1 1 150px; min-width:140px; max-width:200px; }
     .col-header{ padding:6px 8px 5px; gap:5px; }
