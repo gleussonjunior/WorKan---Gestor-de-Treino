@@ -48,21 +48,31 @@
   }
   .fab:active{ transform: scale(0.94); }
 
-  /* Botão redondo de volume — minimalista, acima do fab principal */
+  /* Botão redondo de volume — nasce pequeno (só o número), some com o ícone quando fechado.
+     Expande e revela o emoji apenas quando aberto (clusterizado junto ao + suspenso). */
   .volume-fab{
-    position:fixed; bottom:calc(86px + env(safe-area-inset-bottom)); right:calc(20px + env(safe-area-inset-right)); z-index:66; width:46px; height:46px;
+    position:fixed; bottom:calc(84px + env(safe-area-inset-bottom)); right:calc(20px + env(safe-area-inset-right)); z-index:66;
+    width:32px; height:32px;
     background:var(--surface); color:var(--text-dim); border:1.5px solid var(--border);
     border-radius:50%; display:flex; align-items:center; justify-content:center;
     cursor:pointer; box-shadow:0 3px 10px rgba(20,20,30,0.14);
-    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease, width 0.18s ease, height 0.18s ease;
   }
   .volume-fab:active{ transform: scale(0.94); }
-  .volume-fab-icon{ font-size:19px; line-height:1; }
-  .volume-fab.active{ background:#1B1D24; color:#fff; border-color:#1B1D24; }
+  .volume-fab-icon{ font-size:19px; line-height:1; display:none; }
   .volume-fab-dot{
+    min-width:0; height:auto; padding:0; background:transparent; color:var(--text-dim);
+    border-radius:0; font-size:12px; font-weight:800; box-shadow:none;
+    display:flex; align-items:center; justify-content:center; font-family:var(--mono);
+  }
+  .volume-fab.active{
+    width:46px; height:46px;
+    background:#1B1D24; color:#fff; border-color:#1B1D24;
+  }
+  .volume-fab.active .volume-fab-icon{ display:block; }
+  .volume-fab.active .volume-fab-dot{
     position:absolute; top:-2px; right:-2px; min-width:16px; height:16px; padding:0 3px;
     background:#4A90D9; color:#fff; border-radius:8px; font-size:9px; font-weight:700;
-    display:flex; align-items:center; justify-content:center; font-family:var(--mono);
     box-shadow:0 0 0 2px var(--bg);
   }
   .volume-panel{
@@ -157,6 +167,7 @@
     flex-shrink:0;
   }
   .footer-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); margin-bottom:2px; }
+  .col-total-num{ font-family:var(--mono); font-weight:800; font-size:17px; }
   .vol-toggle{
     background:var(--surface-2); border:1px solid var(--border); color:var(--text-dim);
     width:24px; height:24px; border-radius:var(--radius-sm); cursor:pointer; font-size:16px; line-height:1;
@@ -268,19 +279,42 @@
 
   /* Paisagem com pouca altura (celular deitado): cabeçalho/rodapé mais enxutos,
      pra sobrar altura de verdade pros exercícios em vez de disputar espaço com eles */
-  @media (orientation: landscape) and (max-height: 480px){
-    .top-bar{ padding:calc(8px + env(safe-area-inset-top)) 16px 0; }
+  /* Paisagem (celular deitado): modo compacto — cabe mais coluna e mais exercício na tela.
+     Escopo largo (todo celular deitado), não afeta retrato nem tablets/desktop. */
+  @media (orientation: landscape) and (max-width: 950px){
+    .top-bar{ padding:calc(6px + env(safe-area-inset-top)) 14px 0; }
     .plan-chip{ padding:5px 11px; font-size:11px; }
-    .board{ padding-top:10px; padding-bottom:70px; }
-    .col-header{ padding:8px 10px 6px; }
-    .col-title{ font-size:15px; }
-    .col-drag-handle, .col-add-btn, .col-dup-btn{ width:22px; height:22px; }
-    .card{ padding:10px 12px; }
-    .card-name{ font-size:14px; margin-bottom:3px; }
-    .card-reps{ font-size:12px; }
-    .col-footer{ padding:8px 12px 10px; }
-    .fab{ width:44px; height:44px; font-size:22px; bottom:calc(12px + env(safe-area-inset-bottom)); }
-    .volume-fab{ width:38px; height:38px; bottom:calc(64px + env(safe-area-inset-bottom)); }
+    .board{
+      padding:8px calc(14px + env(safe-area-inset-right)) 64px calc(14px + env(safe-area-inset-left));
+      gap:8px;
+    }
+    .column{ flex:1 1 150px; min-width:140px; max-width:200px; }
+    .col-header{ padding:7px 9px 5px; gap:5px; }
+    .col-title{ font-size:13px; }
+    .col-drag-handle, .col-add-btn, .col-dup-btn{ width:20px; height:20px; }
+    .col-drag-handle svg, .col-dup-btn svg{ width:11px; height:11px; }
+    .col-header-btns{ gap:4px; }
+    .col-body{ padding:6px; gap:4px; }
+    .card{
+      display:flex; align-items:baseline; justify-content:space-between; gap:6px;
+      padding:6px 22px 6px 8px; border-radius:10px;
+    }
+    .card-name{
+      font-size:11.5px; margin-bottom:0; padding-right:0; line-height:1.25;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
+    }
+    .card-reps{ font-size:10px; flex-shrink:0; }
+    .card-del{ top:50%; right:6px; transform:translateY(-50%); font-size:12px; }
+    .col-footer{ padding:6px 9px 8px; gap:3px; }
+    .footer-label{ font-size:7px; margin-bottom:0; }
+    .col-total-num{ font-size:13px; }
+    .vol-toggle{ width:19px; height:19px; font-size:13px; }
+    .vol-badge{ padding:4px 7px; font-size:10px; }
+    .col-del{ font-size:10px; padding:2px 4px; }
+    .fab{ width:42px; height:42px; font-size:21px; bottom:calc(10px + env(safe-area-inset-bottom)); }
+    .volume-fab{ width:26px; height:26px; bottom:calc(58px + env(safe-area-inset-bottom)); }
+    .volume-fab.active{ width:38px; height:38px; }
+    .volume-fab-dot{ font-size:10px; }
   }
 </style>
 </head>
@@ -612,7 +646,7 @@ function renderBoard(){
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div class="footer-label" style="margin-bottom:2px;">Total do treino</div>
-          <div style="font-family:var(--mono);font-weight:800;font-size:17px;">${totalSeries} séries</div>
+          <div class="col-total-num">${totalSeries} séries</div>
         </div>
         <button class="vol-toggle" id="vol-toggle-${day.id}">${day.volumeExpanded ? '−' : '+'}</button>
       </div>`;
