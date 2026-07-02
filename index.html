@@ -48,31 +48,22 @@
   }
   .fab:active{ transform: scale(0.94); }
 
-  /* Botão redondo de volume — nasce pequeno (só o número), some com o ícone quando fechado.
-     Expande e revela o emoji apenas quando aberto (clusterizado junto ao + suspenso). */
+  /* Botão redondo de volume — ícone sempre visível, com o número em badge no canto */
   .volume-fab{
-    position:fixed; bottom:calc(84px + env(safe-area-inset-bottom)); right:calc(20px + env(safe-area-inset-right)); z-index:66;
-    width:32px; height:32px;
+    position:fixed; bottom:calc(86px + env(safe-area-inset-bottom)); right:calc(20px + env(safe-area-inset-right)); z-index:66;
+    width:46px; height:46px;
     background:var(--surface); color:var(--text-dim); border:1.5px solid var(--border);
     border-radius:50%; display:flex; align-items:center; justify-content:center;
     cursor:pointer; box-shadow:0 3px 10px rgba(20,20,30,0.14);
-    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease, width 0.18s ease, height 0.18s ease;
+    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
   .volume-fab:active{ transform: scale(0.94); }
-  .volume-fab-icon{ font-size:19px; line-height:1; display:none; }
+  .volume-fab-icon{ font-size:19px; line-height:1; }
+  .volume-fab.active{ background:#1B1D24; color:#fff; border-color:#1B1D24; }
   .volume-fab-dot{
-    min-width:0; height:auto; padding:0; background:transparent; color:var(--text-dim);
-    border-radius:0; font-size:12px; font-weight:800; box-shadow:none;
-    display:flex; align-items:center; justify-content:center; font-family:var(--mono);
-  }
-  .volume-fab.active{
-    width:46px; height:46px;
-    background:#1B1D24; color:#fff; border-color:#1B1D24;
-  }
-  .volume-fab.active .volume-fab-icon{ display:block; }
-  .volume-fab.active .volume-fab-dot{
     position:absolute; top:-2px; right:-2px; min-width:16px; height:16px; padding:0 3px;
     background:#4A90D9; color:#fff; border-radius:8px; font-size:9px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-family:var(--mono);
     box-shadow:0 0 0 2px var(--bg);
   }
   .volume-panel{
@@ -89,20 +80,10 @@
   }
   .btn-primary:active{ transform: scale(0.97); }
 
-  /* Barra superior — plano ativo */
-  .top-bar{ padding:calc(14px + env(safe-area-inset-top)) 16px 0; flex-shrink:0; }
-  .plan-chip{
-    display:inline-flex; align-items:center; gap:7px; background:var(--surface-2);
-    border:1px solid var(--border); color:var(--text); border-radius:20px; padding:8px 14px;
-    font-size:13px; font-weight:700; cursor:pointer; font-family:var(--sans);
-  }
-  .plan-chip:active{ opacity:0.75; }
-  .plan-chip-caret{ color:var(--text-faint); font-size:10px; }
-
   /* Board */
   .board{
     flex:1; overflow-x:auto; overflow-y:auto; display:flex; gap:12px;
-    padding:16px calc(16px + env(safe-area-inset-right)) 90px calc(16px + env(safe-area-inset-left));
+    padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 90px calc(16px + env(safe-area-inset-left));
     align-items:flex-start;
   }
   .column{
@@ -277,56 +258,45 @@
     }
   }
 
-  /* Paisagem com pouca altura (celular deitado): cabeçalho/rodapé mais enxutos,
-     pra sobrar altura de verdade pros exercícios em vez de disputar espaço com eles */
-  /* Paisagem (celular deitado): modo compacto — cabe mais coluna e mais exercício na tela.
-     Escopo largo (todo celular deitado), não afeta retrato nem tablets/desktop. */
+  /* Paisagem (celular deitado): modo compacto — cabe mais coluna e mais exercício na tela,
+     mas com texto num tamanho ainda confortável de ler. */
   @media (orientation: landscape) and (max-width: 950px){
-    .top-bar{ padding:calc(6px + env(safe-area-inset-top)) 14px 0; }
-    .plan-chip{ padding:5px 11px; font-size:11px; }
     .board{
-      padding:8px calc(14px + env(safe-area-inset-right)) 64px calc(14px + env(safe-area-inset-left));
+      padding:calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 64px calc(14px + env(safe-area-inset-left));
       gap:8px;
     }
     .column{ flex:1 1 150px; min-width:140px; max-width:200px; }
-    .col-header{ padding:7px 9px 5px; gap:5px; }
-    .col-title{ font-size:13px; }
-    .col-drag-handle, .col-add-btn, .col-dup-btn{ width:20px; height:20px; }
-    .col-drag-handle svg, .col-dup-btn svg{ width:11px; height:11px; }
+    .col-header{ padding:8px 10px 6px; gap:6px; }
+    .col-title{ font-size:15px; }
+    .col-drag-handle, .col-add-btn, .col-dup-btn{ width:22px; height:22px; }
+    .col-drag-handle svg, .col-dup-btn svg{ width:12px; height:12px; }
     .col-header-btns{ gap:4px; }
-    .col-body{ padding:6px; gap:4px; }
+    .col-body{ padding:7px; gap:5px; }
     .card{
-      display:flex; align-items:baseline; justify-content:space-between; gap:6px;
-      padding:6px 22px 6px 8px; border-radius:10px;
+      display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+      padding:8px 24px 8px 10px; border-radius:12px;
     }
     .card-name{
-      font-size:11.5px; margin-bottom:0; padding-right:0; line-height:1.25;
+      font-size:14px; font-weight:800; margin-bottom:0; padding-right:0; line-height:1.25;
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
     }
-    .card-reps{ font-size:10px; flex-shrink:0; }
-    .card-del{ top:50%; right:6px; transform:translateY(-50%); font-size:12px; }
-    .col-footer{ padding:6px 9px 8px; gap:3px; }
-    .footer-label{ font-size:7px; margin-bottom:0; }
-    .col-total-num{ font-size:13px; }
-    .vol-toggle{ width:19px; height:19px; font-size:13px; }
-    .vol-badge{ padding:4px 7px; font-size:10px; }
-    .col-del{ font-size:10px; padding:2px 4px; }
-    .fab{ width:42px; height:42px; font-size:21px; bottom:calc(10px + env(safe-area-inset-bottom)); }
-    .volume-fab{ width:26px; height:26px; bottom:calc(58px + env(safe-area-inset-bottom)); }
-    .volume-fab.active{ width:38px; height:38px; }
-    .volume-fab-dot{ font-size:10px; }
+    .card-reps{ font-size:12px; flex-shrink:0; }
+    .card-del{ top:50%; right:8px; transform:translateY(-50%); font-size:13px; }
+    .col-footer{ padding:7px 10px 9px; gap:3px; }
+    .footer-label{ font-size:8px; margin-bottom:0; }
+    .col-total-num{ font-size:14px; }
+    .vol-toggle{ width:20px; height:20px; font-size:14px; }
+    .vol-badge{ padding:5px 8px; font-size:11px; }
+    .col-del{ font-size:11px; padding:3px 5px; }
+    .fab{ width:44px; height:44px; font-size:22px; bottom:calc(10px + env(safe-area-inset-bottom)); }
+    .volume-fab{ width:36px; height:36px; bottom:calc(60px + env(safe-area-inset-bottom)); }
+    .volume-fab-icon{ font-size:16px; }
+    .volume-fab-dot{ font-size:8px; min-width:14px; height:14px; }
   }
 </style>
 </head>
 <body>
 
-<div class="top-bar">
-  <button class="plan-chip" id="plan-chip-btn">
-    <span>📁</span>
-    <span id="plan-chip-name">Minha divisão</span>
-    <span class="plan-chip-caret">▾</span>
-  </button>
-</div>
 <div class="board" id="board"></div>
 
 <button class="volume-fab" id="volume-fab-btn" aria-label="Volume da semana">
@@ -560,18 +530,6 @@ function renderBoard(){
       const afterEl = getDragAfterElement(col.querySelector('.col-body'), e.clientY);
       moveBlock(blockId, fromDayId, day.id, afterEl ? afterEl.dataset.blockId : null);
     };
-    col.ondragstart = e=>{
-      e.dataTransfer.setData('columnid', day.id);
-      e.dataTransfer.effectAllowed = 'move';
-      col.classList.add('col-dragging');
-      // solta a trava assim que o navegador já capturou o drag (evita interferir no gesto)
-      setTimeout(()=>{ col.draggable = false; }, 0);
-    };
-    col.ondragend = ()=>{
-      col.draggable = false;
-      col.classList.remove('col-dragging');
-      removeDropIndicator();
-    };
 
     // header
     const header = document.createElement('div');
@@ -591,11 +549,19 @@ function renderBoard(){
     header.querySelector('.col-title').onchange = e=>{ day.nome = e.target.value; saveToStorage(); };
     header.querySelector('.col-dup-btn').onclick = ()=> duplicateDay(day.id);
     header.querySelector('.col-add-btn').onclick = ()=> openAddExercise(day.id);
+    // Só a alcinha é arrastável (permanentemente) — a coluna em si nunca fica draggable,
+    // então nunca disputa com o drag de um card dentro dela.
     const dragHandle = header.querySelector('.col-drag-handle');
-    dragHandle.addEventListener('pointerdown', ()=>{ col.draggable = true; });
-    ['pointerup','pointercancel'].forEach(evt=>{
-      dragHandle.addEventListener(evt, ()=>{ col.draggable = false; });
-    });
+    dragHandle.draggable = true;
+    dragHandle.ondragstart = e=>{
+      e.dataTransfer.setData('columnid', day.id);
+      e.dataTransfer.effectAllowed = 'move';
+      col.classList.add('col-dragging');
+    };
+    dragHandle.ondragend = ()=>{
+      col.classList.remove('col-dragging');
+      removeDropIndicator();
+    };
     col.appendChild(header);
 
     // body
@@ -1037,7 +1003,6 @@ function openPlanSwitcher(){
     state.nome = name;
     saveToStorage();
     renderPlanList();
-    document.getElementById('plan-chip-name').textContent = state.nome;
   };
   modal.querySelector('#create-plan').onclick = ()=>{
     const inp = document.getElementById('new-plan-name');
@@ -1095,8 +1060,6 @@ function renderPlanList(){
   });
 }
 
-document.getElementById('plan-chip-btn').onclick = openPlanSwitcher;
-
 // ---------- BOTÃO FLUTUANTE (+) ----------
 // toque rápido = novo treino nesse plano · segurar = trocar/criar plano
 const fabBtn = document.getElementById('fab-btn');
@@ -1139,7 +1102,6 @@ document.addEventListener('click', e=>{
 });
 
 function renderAll(){
-  document.getElementById('plan-chip-name').textContent = state.nome;
   renderBoard();
   renderVolumeWidget();
   saveToStorage();
