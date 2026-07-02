@@ -123,28 +123,32 @@
     background:none; border:none; color:var(--text-faint); font-size:13px; cursor:pointer; padding:4px 6px;
   }
   .col-body{
-    padding:12px; display:flex; flex-direction:column; gap:10px;
+    padding:0; display:flex; flex-direction:column;
   }
   .card{
-    display:flex; align-items:stretch; border-radius:var(--radius-card); cursor:grab; overflow:hidden;
-    box-shadow: 0 1px 2px rgba(20,20,30,0.08);
-    position:relative; transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    display:flex; align-items:stretch; border-radius:0; cursor:grab;
+    position:relative; border-top:1px solid rgba(0,0,0,0.16);
+    transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
+  .card:first-child{ border-top:none; }
   .card:active{ cursor:grabbing; }
-  .card.dragging{ opacity:0.55; transform:scale(0.97); box-shadow:0 10px 22px rgba(20,20,30,0.22); z-index:2; }
+  .card.dragging{ opacity:0.55; transform:scale(0.98); box-shadow:0 10px 22px rgba(20,20,30,0.22); z-index:2; }
   .card-num{
-    width:26px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
-    font-family:var(--mono); font-weight:800; font-size:12px; background:rgba(0,0,0,0.14);
+    width:22px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:800; font-size:11px; background:rgba(0,0,0,0.16);
   }
-  .card-main{ flex:1; min-width:0; position:relative; padding:16px 32px 16px 14px; }
-  .card-actions{ position:absolute; top:9px; right:9px; display:flex; flex-direction:column; gap:4px; }
-  .card-swap, .card-del{
-    background:rgba(255,255,255,0.2); border:none; border-radius:7px; width:20px; height:20px;
-    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px;
+  .card-main{
+    flex:1; min-width:0; position:relative; padding:9px 30px 9px 10px;
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  .card-actions{ position:absolute; top:7px; right:7px; display:flex; gap:4px; }
+  .card-del{
+    background:rgba(0,0,0,0.16); border:none; border-radius:6px; width:18px; height:18px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:11px;
     line-height:1; padding:0;
   }
-  .card-name{ font-size:16px; font-weight:800; margin-bottom:5px; line-height:1.2; }
-  .card-reps{ font-family:var(--mono); font-size:14px; font-weight:600; color:var(--text-dim); }
+  .card-name{ font-size:13px; font-weight:800; margin-bottom:1px; line-height:1.2; }
+  .card-reps{ font-family:var(--mono); font-size:11.5px; font-weight:600; color:var(--text-dim); }
   .drop-indicator{
     background:#4A90D9; border-radius:5px; flex-shrink:0;
     box-shadow:0 0 0 3px rgba(74,144,217,0.16);
@@ -233,7 +237,10 @@
   .plan-row.active{ border-color:#4A90D9; background:#EAF2FC; }
   .plan-row-main{ display:flex; flex-direction:column; gap:2px; min-width:0; }
   .plan-row-name{ font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .plan-active-tag{ font-size:9px; color:#4A90D9; font-weight:700; text-transform:uppercase; margin-left:4px; }
+  .plan-rename-input{
+    width:100%; background:transparent; border:none; outline:none; padding:0;
+    font-size:13px; font-weight:700; color:var(--text); font-family:var(--sans);
+  }
   .plan-row-meta{ font-size:11px; color:var(--text-faint); }
   .plan-row-del{ background:none; border:none; color:var(--text-faint); font-size:16px; cursor:pointer; flex-shrink:0; padding:2px 6px; }
 
@@ -280,16 +287,12 @@
     .col-drag-handle svg, .col-dup-btn svg{ width:10px; height:10px; }
     .col-header-btns{ gap:3px; }
 
-    /* cards colados: sem espaçamento entre eles nem para a borda da coluna —
-       a separação vira só uma linha fina, e a própria coluna numerada some com o padding */
-    .col-body{ padding:0; gap:0; }
-    .card{ border-radius:0; box-shadow:none; overflow:visible; border-top:1px solid rgba(255,255,255,0.18); }
-    .card:first-child{ border-top:none; }
+    /* mais compacto ainda: nome e reps numa linha só, ícone menor */
     .card-num{ width:18px; font-size:9.5px; }
-    .card-main{ padding:6px 38px 6px 7px; display:flex; align-items:baseline; justify-content:space-between; gap:6px; }
-    .card-actions{ top:6px; right:4px; flex-direction:row; gap:3px; }
-    .card-swap, .card-del{ width:14px; height:14px; font-size:9px; border-radius:4px; }
-    .card-name{ flex:1; min-width:0; font-size:12px; font-weight:800; margin-bottom:0; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-main{ padding:6px 30px 6px 7px; flex-direction:row; align-items:center; justify-content:space-between; gap:6px; }
+    .card-actions{ top:6px; right:4px; }
+    .card-del{ width:15px; height:15px; font-size:9.5px; border-radius:4px; }
+    .card-name{ flex:1; min-width:0; font-size:12px; margin-bottom:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .card-reps{ flex-shrink:0; font-size:10.5px; }
 
     .col-footer{ padding:6px 9px 8px; gap:3px; }
@@ -585,7 +588,7 @@ function renderBoard(){
       card.className = 'card';
       card.dataset.blockId = b.id;
       const txtColor = textColorFor(MUSCLES[mainMuscle].color);
-      card.style.background = `linear-gradient(135deg, ${MUSCLES[mainMuscle].color}, ${shade(MUSCLES[mainMuscle].color, -0.22)})`;
+      card.style.background = MUSCLES[mainMuscle].color;
       card.style.color = txtColor;
       card.draggable = true;
       card.ondragstart = e=>{
@@ -595,11 +598,10 @@ function renderBoard(){
       };
       card.ondragend = ()=> card.classList.remove('dragging');
       card.innerHTML = `
-        <div class="card-num" style="color:${txtColor}">${idx + 1}</div>
+        <div class="card-num" style="color:${txtColor};background:${txtColor==='#FFFFFF'?'rgba(255,255,255,0.16)':'rgba(0,0,0,0.14)'}">${idx + 1}</div>
         <div class="card-main">
           <div class="card-actions">
-            <button class="card-swap" style="color:${txtColor}" title="Trocar por outro exercício do mesmo grupo">⇄</button>
-            <button class="card-del" style="color:${txtColor}" title="Remover">×</button>
+            <button class="card-del" style="color:${txtColor};background:${txtColor==='#FFFFFF'?'rgba(255,255,255,0.22)':'rgba(0,0,0,0.14)'}" title="Remover">×</button>
           </div>
           <div class="card-name">${ex.nome}</div>
           <div class="card-reps" style="color:${txtColor};opacity:0.8">${b.series}x ${b.repsMin}-${b.repsMax}</div>
@@ -609,10 +611,6 @@ function renderBoard(){
         e.stopPropagation();
         day.blocks = day.blocks.filter(x=>x.id!==b.id);
         renderAll();
-      };
-      card.querySelector('.card-swap').onclick = (e)=>{
-        e.stopPropagation();
-        openSwapExercise(day.id, b.id);
       };
       card.onclick = (e)=>{
         if(e.target.closest('.card-actions')) return;
@@ -978,12 +976,14 @@ function openEditBlock(dayId, blockId){
       <div class="field"><label>Reps min</label><input type="number" id="e-repmin" value="${block.repsMin}" min="1" /></div>
       <div class="field"><label>Reps max</label><input type="number" id="e-repmax" value="${block.repsMax}" min="1" /></div>
     </div>
+    <button class="btn-primary" id="btn-swap-ex" style="width:100%; justify-content:center; margin-bottom:12px;">⇄ Trocar exercício</button>
     <div class="modal-actions">
       <button class="btn-cancel" id="cancel-edit">Cancelar</button>
       <button class="btn-confirm" id="save-edit">Salvar</button>
     </div>
   `;
   modal.querySelector('#cancel-edit').onclick = closeModal;
+  modal.querySelector('#btn-swap-ex').onclick = ()=> openSwapExercise(dayId, blockId);
   modal.querySelector('#save-edit').onclick = ()=>{
     block.series = parseInt(document.getElementById('e-series').value)||1;
     block.repsMin = parseInt(document.getElementById('e-repmin').value)||1;
@@ -1042,30 +1042,39 @@ function openPlanSwitcher(){
   const modal = document.getElementById('modal-content');
   modal.innerHTML = `
     <h3>Divisões de treino</h3>
-    <div class="field">
-      <label>Nome da divisão atual</label>
-      <input id="rename-plan-name" value="${state.nome}" />
+    <div id="plan-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+    <button class="btn-primary" id="btn-new-plan" style="width:100%; justify-content:center;">+ Criar nova divisão</button>
+    <div id="new-plan-form" style="display:none;">
+      <div class="field" style="margin-top:12px;">
+        <label>Nome da nova divisão</label>
+        <input id="new-plan-name" placeholder="Ex: Divisão ABC, Push/Pull/Legs..." />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancel-new-plan">Cancelar</button>
+        <button class="btn-confirm" id="confirm-new-plan">Criar</button>
+      </div>
     </div>
-    <div id="plan-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
-    <div class="field">
-      <label>Criar nova divisão</label>
-      <input id="new-plan-name" placeholder="Ex: Divisão ABC, Push/Pull/Legs..." />
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="cancel-plan">Fechar</button>
-      <button class="btn-confirm" id="create-plan">Criar divisão</button>
+    <div class="modal-actions" id="plan-switcher-close">
+      <button class="btn-cancel" id="cancel-plan" style="width:100%;">Fechar</button>
     </div>
   `;
   renderPlanList();
+  const newPlanBtn = modal.querySelector('#btn-new-plan');
+  const newPlanForm = modal.querySelector('#new-plan-form');
+  const closeRow = modal.querySelector('#plan-switcher-close');
   modal.querySelector('#cancel-plan').onclick = closeModal;
-  modal.querySelector('#rename-plan-name').onchange = e=>{
-    const name = e.target.value.trim();
-    if(!name) return;
-    state.nome = name;
-    saveToStorage();
-    renderPlanList();
+  newPlanBtn.onclick = ()=>{
+    newPlanBtn.style.display = 'none';
+    closeRow.style.display = 'none';
+    newPlanForm.style.display = 'block';
+    document.getElementById('new-plan-name').focus();
   };
-  modal.querySelector('#create-plan').onclick = ()=>{
+  modal.querySelector('#cancel-new-plan').onclick = ()=>{
+    newPlanForm.style.display = 'none';
+    newPlanBtn.style.display = 'flex';
+    closeRow.style.display = 'flex';
+  };
+  modal.querySelector('#confirm-new-plan').onclick = ()=>{
     const inp = document.getElementById('new-plan-name');
     const name = inp.value.trim();
     if(!name){ inp.style.borderColor = '#D94F4F'; inp.placeholder = 'Dá um nome pra divisão'; inp.focus(); return; }
@@ -1085,18 +1094,36 @@ function renderPlanList(){
   listEl.innerHTML = appState.plans.map(p=>{
     const isActive = p.id === appState.activePlanId;
     const n = p.workoutDays.length;
-    return `<div class="plan-row ${isActive?'active':''}" data-id="${p.id}">
+    if(isActive){
+      return `<div class="plan-row active" data-id="${p.id}">
+        <div class="plan-row-main">
+          <input class="plan-rename-input" id="plan-rename-input" value="${p.nome}" />
+          <div class="plan-row-meta">${n} treino${n===1?'':'s'} · atual — toque pra renomear</div>
+        </div>
+      </div>`;
+    }
+    return `<div class="plan-row" data-id="${p.id}">
       <div class="plan-row-main">
-        <div class="plan-row-name">${p.nome}${isActive?'<span class="plan-active-tag">atual</span>':''}</div>
+        <div class="plan-row-name">${p.nome}</div>
         <div class="plan-row-meta">${n} treino${n===1?'':'s'}</div>
       </div>
       ${appState.plans.length>1 ? `<button class="plan-row-del" data-id="${p.id}" title="Excluir divisão">×</button>` : ''}
     </div>`;
   }).join('');
-  listEl.querySelectorAll('.plan-row').forEach(row=>{
+
+  const renameInput = listEl.querySelector('#plan-rename-input');
+  if(renameInput){
+    renameInput.onchange = e=>{
+      const name = e.target.value.trim();
+      if(!name){ e.target.value = state.nome; return; }
+      state.nome = name;
+      saveToStorage();
+      renderPlanList();
+    };
+  }
+  listEl.querySelectorAll('.plan-row:not(.active)').forEach(row=>{
     row.onclick = ()=>{
       const pid = row.dataset.id;
-      if(pid === appState.activePlanId) return;
       appState.activePlanId = pid;
       state = appState.plans.find(p=>p.id===pid);
       saveToStorage();
@@ -1162,10 +1189,37 @@ document.addEventListener('click', e=>{
   }
 });
 
+// ---------- ALINHAMENTO DE LINHAS ENTRE COLUNAS (lado a lado) ----------
+// A altura de cada "linha" (mesma posição em colunas diferentes) se ajusta pelo card mais alto
+// daquela posição, sem truncar texto nenhum. Só faz sentido quando as colunas estão lado a lado
+// (paisagem/desktop) — no empilhado (retrato) cada coluna já ocupa a largura toda sozinha.
+function syncCardRowHeights(){
+  const board = document.getElementById('board');
+  if(!board) return;
+  const columns = [...board.querySelectorAll('.column')];
+  const rows = columns.map(col => [...col.querySelectorAll('.col-body > .card')]);
+  // zera alturas forçadas antes de medir, senão a medição parte de um valor já esticado
+  rows.forEach(cards => cards.forEach(c => { c.style.minHeight = ''; }));
+  const isRow = getComputedStyle(board).flexDirection !== 'column';
+  if(!isRow) return;
+  const maxLen = Math.max(0, ...rows.map(cards => cards.length));
+  for(let i = 0; i < maxLen; i++){
+    let maxH = 0;
+    rows.forEach(cards => { if(cards[i]) maxH = Math.max(maxH, cards[i].getBoundingClientRect().height); });
+    rows.forEach(cards => { if(cards[i]) cards[i].style.minHeight = maxH + 'px'; });
+  }
+}
+let rowSyncResizeTimer = null;
+window.addEventListener('resize', ()=>{
+  clearTimeout(rowSyncResizeTimer);
+  rowSyncResizeTimer = setTimeout(syncCardRowHeights, 120);
+});
+
 function renderAll(){
   renderBoard();
   renderVolumeWidget();
   saveToStorage();
+  syncCardRowHeights();
 }
 
 renderAll();
