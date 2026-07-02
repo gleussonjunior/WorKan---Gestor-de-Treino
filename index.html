@@ -260,6 +260,15 @@
   .catalog-list{ max-height:44vh; overflow-y:auto; }
   .catalog-empty{ font-size:12px; color:var(--text-faint); padding:14px 4px; text-align:center; }
 
+  .undo-toast{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+    background:rgba(27,29,36,0.94); color:#fff; padding:11px 20px; border-radius:999px;
+    font-size:13px; font-weight:700; font-family:var(--sans); z-index:200;
+    opacity:0; pointer-events:none; transition:opacity 0.2s ease;
+    white-space:nowrap;
+  }
+  .undo-toast.show{ opacity:1; }
+
   ::-webkit-scrollbar{ height:8px; width:8px; }
   ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:4px; }
 
@@ -471,6 +480,113 @@ if(saved && Array.isArray(saved.plans) && saved.plans.length){
 
 // `state` sempre aponta pro plano ativo — trocar de plano reatribui essa referência
 let state = appState.plans.find(p=>p.id===appState.activePlanId);
+
+// ---------- HISTÓRICO DE DESFAZER / REFAZER ----------
+// A cada renderAll(), comparamos o estado atual com o último "retrato" salvo.
+// Se mudou, guardamos o retrato anterior na pilha — assim cada ação vira um passo de undo,
+// sem precisar marcar manualmente cada botão que muda algo. Uma mudança nova sempre limpa
+// o redo (regra clássica de undo/redo: não dá pra "refazer" depois de editar algo novo).
+let undoStack = [];
+let redoStack = [];
+const MAX_UNDO = 30;
+let lastSnapshot = JSON.stringify({ plans: appState.plans, activePlanId: appState.activePlanId });
+let isRestoringUndo = false;
+
+function captureUndoIfChanged(){
+  if(isRestoringUndo) return;
+  const current = JSON.stringify({ plans: appState.plans, activePlanId: appState.activePlanId });
+  if(current !== lastSnapshot){
+    undoStack.push(lastSnapshot);
+    if(undoStack.length > MAX_UNDO) undoStack.shift();
+    lastSnapshot = current;
+    redoStack = [];
+  }
+}
+
+function restoreSnapshot(json){
+  isRestoringUndo = true;
+  const restored = JSON.parse(json);
+  appState.plans = restored.plans;
+  appState.activePlanId = restored.activePlanId;
+  state = appState.plans.find(p=>p.id===appState.activePlanId) || appState.plans[0];
+  lastSnapshot = json;
+  renderAll();
+  isRestoringUndo = false;
+}
+
+function undoLastChange(){
+  if(undoStack.length === 0){
+    showUndoToast('Nada pra desfazer');
+    return;
+  }
+  const prev = undoStack.pop();
+  redoStack.push(lastSnapshot);
+  if(redoStack.length > MAX_UNDO) redoStack.shift();
+  restoreSnapshot(prev);
+  showUndoToast('Desfeito ↩︎');
+}
+
+function redoLastChange(){
+  if(redoStack.length === 0){
+    showUndoToast('Nada pra refazer');
+    return;
+  }
+  const next = redoStack.pop();
+  undoStack.push(lastSnapshot);
+  if(undoStack.length > MAX_UNDO) undoStack.shift();
+  restoreSnapshot(next);
+  showUndoToast('Refeito ↪︎');
+}
+
+function showUndoToast(text){
+  let toast = document.getElementById('undo-toast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'undo-toast';
+    toast.className = 'undo-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(()=> toast.classList.remove('show'), 1000);
+}
+
+// Toque duplo na área preta de fundo (fora das colunas):
+// 1 dedo = desfazer · 2 dedos = refazer
+function isUndoBackgroundTarget(el){
+  return !!el && (el === document.body || el.id === 'board');
+}
+let lastBgTap = { time:0, x:0, y:0, fingers:0 };
+let pendingFingerCount = 1;
+document.addEventListener('touchstart', (e)=>{
+  pendingFingerCount = e.touches.length;
+}, { passive:true });
+document.addEventListener('touchend', (e)=>{
+  if(e.touches.length > 0) return; // espera soltar todos os dedos antes de avaliar
+  const touch = e.changedTouches && e.changedTouches[0];
+  if(!touch) return;
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+  if(!isUndoBackgroundTarget(target)) return;
+  const now = Date.now();
+  const dx = Math.abs(touch.clientX - lastBgTap.x);
+  const dy = Math.abs(touch.clientY - lastBgTap.y);
+  const isDoubleTap = (now - lastBgTap.time < 350) && dx < 40 && dy < 40 && lastBgTap.fingers === pendingFingerCount;
+  if(isDoubleTap){
+    e.preventDefault();
+    if(pendingFingerCount >= 2){ redoLastChange(); } else { undoLastChange(); }
+    lastBgTap = { time:0, x:0, y:0, fingers:0 };
+  } else {
+    lastBgTap = { time:now, x:touch.clientX, y:touch.clientY, fingers:pendingFingerCount };
+  }
+}, { passive:false });
+// Fallback pra mouse/desktop: duplo-clique desfaz, shift+duplo-clique refaz
+document.addEventListener('dblclick', (e)=>{
+  if(isUndoBackgroundTarget(e.target)){
+    e.preventDefault();
+    if(e.shiftKey){ redoLastChange(); } else { undoLastChange(); }
+  }
+});
 
 // ---------- VOLUME ----------
 function exerciseById(exId){ return catalog.find(e=>e.id===exId); }
@@ -1220,6 +1336,7 @@ window.addEventListener('resize', ()=>{
 });
 
 function renderAll(){
+  captureUndoIfChanged();
   renderBoard();
   renderVolumeWidget();
   saveToStorage();
