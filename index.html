@@ -2,8 +2,15 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Montagem de Treino — MVP</title>
+
+<!-- Rodar em tela cheia (sem barra do Safari) quando adicionado à Tela de Início -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Treino">
+<meta name="theme-color" content="#1B1D24">
 <style>
   :root{
     --bg: #FFFFFF;
@@ -28,10 +35,10 @@
   body{
     margin:0; background:var(--bg); color:var(--text);
     font-family: var(--sans); -webkit-font-smoothing: antialiased;
-    height:100vh; display:flex; flex-direction:column; overflow:hidden;
+    height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden;
   }
   .fab{
-    position:fixed; bottom:20px; right:20px; z-index:70; width:54px; height:54px;
+    position:fixed; bottom:calc(20px + env(safe-area-inset-bottom)); right:calc(20px + env(safe-area-inset-right)); z-index:70; width:54px; height:54px;
     background:#1B1D24; color:#fff; border:none; border-radius:50%;
     font-size:26px; line-height:1; display:flex; align-items:center; justify-content:center;
     cursor:pointer; box-shadow:0 4px 16px rgba(20,20,30,0.28);
@@ -41,7 +48,7 @@
 
   /* Botão redondo de volume — minimalista, acima do fab principal */
   .volume-fab{
-    position:fixed; bottom:86px; right:20px; z-index:66; width:46px; height:46px;
+    position:fixed; bottom:calc(86px + env(safe-area-inset-bottom)); right:calc(20px + env(safe-area-inset-right)); z-index:66; width:46px; height:46px;
     background:var(--surface); color:var(--text-dim); border:1.5px solid var(--border);
     border-radius:50%; display:flex; align-items:center; justify-content:center;
     cursor:pointer; box-shadow:0 3px 10px rgba(20,20,30,0.14);
@@ -57,7 +64,7 @@
     box-shadow:0 0 0 2px var(--bg);
   }
   .volume-panel{
-    position:fixed; right:20px; bottom:140px; z-index:65; width:220px; max-width:calc(100vw - 40px);
+    position:fixed; right:calc(20px + env(safe-area-inset-right)); bottom:calc(140px + env(safe-area-inset-bottom)); z-index:65; width:220px; max-width:calc(100vw - 40px);
     max-height:min(50vh, 360px); overflow-y:auto;
     background:var(--surface); border:1.5px solid var(--border); border-radius:14px;
     box-shadow:0 8px 26px rgba(20,20,30,0.18); padding:14px; display:none;
@@ -71,7 +78,7 @@
   .btn-primary:active{ transform: scale(0.97); }
 
   /* Barra superior — plano ativo */
-  .top-bar{ padding:14px 16px 0; flex-shrink:0; }
+  .top-bar{ padding:calc(14px + env(safe-area-inset-top)) 16px 0; flex-shrink:0; }
   .plan-chip{
     display:inline-flex; align-items:center; gap:7px; background:var(--surface-2);
     border:1px solid var(--border); color:var(--text); border-radius:20px; padding:7px 13px;
@@ -83,7 +90,8 @@
   /* Board */
   .board{
     flex:1; overflow-x:auto; overflow-y:hidden; display:flex; gap:12px;
-    padding:16px 16px 90px; align-items:flex-start;
+    padding:16px calc(16px + env(safe-area-inset-right)) 90px calc(16px + env(safe-area-inset-left));
+    align-items:flex-start;
   }
   .column{
     background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius);
