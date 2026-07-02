@@ -126,22 +126,30 @@
     padding:12px; display:flex; flex-direction:column; gap:10px;
   }
   .card{
-    border-radius:var(--radius-card); padding:16px 14px; cursor:grab; box-shadow: 0 1px 2px rgba(20,20,30,0.08);
+    display:flex; align-items:stretch; border-radius:var(--radius-card); cursor:grab; overflow:hidden;
+    box-shadow: 0 1px 2px rgba(20,20,30,0.08);
     position:relative; transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
   .card:active{ cursor:grabbing; }
-  .card.dragging{ opacity:0.55; transform:scale(0.97); box-shadow:0 10px 22px rgba(20,20,30,0.22); }
-  .card-name{ font-size:16px; font-weight:800; margin-bottom:5px; padding-right:18px; line-height:1.2; }
-  .card-reps{ font-family:var(--mono); font-size:14px; font-weight:600; color:var(--text-dim); }
-  .card-del{
-    position:absolute; top:10px; right:10px; background:none; border:none; color:var(--text-faint);
-    font-size:16px; cursor:pointer; line-height:1;
+  .card.dragging{ opacity:0.55; transform:scale(0.97); box-shadow:0 10px 22px rgba(20,20,30,0.22); z-index:2; }
+  .card-num{
+    width:26px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:800; font-size:12px; background:rgba(0,0,0,0.14);
   }
+  .card-main{ flex:1; min-width:0; position:relative; padding:16px 32px 16px 14px; }
+  .card-actions{ position:absolute; top:9px; right:9px; display:flex; flex-direction:column; gap:4px; }
+  .card-swap, .card-del{
+    background:rgba(255,255,255,0.2); border:none; border-radius:7px; width:20px; height:20px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px;
+    line-height:1; padding:0;
+  }
+  .card-name{ font-size:16px; font-weight:800; margin-bottom:5px; line-height:1.2; }
+  .card-reps{ font-family:var(--mono); font-size:14px; font-weight:600; color:var(--text-dim); }
   .drop-indicator{
     background:#4A90D9; border-radius:5px; flex-shrink:0;
     box-shadow:0 0 0 3px rgba(74,144,217,0.16);
   }
-  .drop-indicator.horizontal{ height:6px; width:100%; }
+  .drop-indicator.horizontal{ height:5px; width:100%; margin:2px 0; }
   .drop-indicator.vertical{ width:6px; align-self:stretch; }
   .col-footer{
     border-top:1px solid var(--border); padding:12px 14px 14px; display:flex; flex-direction:column; gap:6px;
@@ -266,28 +274,30 @@
       gap:8px;
     }
     .column{ flex:1 1 150px; min-width:140px; max-width:200px; }
-    .col-header{ padding:8px 10px 6px; gap:6px; }
-    .col-title{ font-size:15px; }
-    .col-drag-handle, .col-add-btn, .col-dup-btn{ width:22px; height:22px; }
-    .col-drag-handle svg, .col-dup-btn svg{ width:12px; height:12px; }
-    .col-header-btns{ gap:4px; }
-    .col-body{ padding:7px; gap:5px; }
-    .card{
-      display:flex; align-items:baseline; justify-content:space-between; gap:8px;
-      padding:8px 24px 8px 10px; border-radius:12px;
-    }
-    .card-name{
-      font-size:14px; font-weight:800; margin-bottom:0; padding-right:0; line-height:1.25;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
-    }
-    .card-reps{ font-size:12px; flex-shrink:0; }
-    .card-del{ top:50%; right:8px; transform:translateY(-50%); font-size:13px; }
-    .col-footer{ padding:7px 10px 9px; gap:3px; }
-    .footer-label{ font-size:8px; margin-bottom:0; }
-    .col-total-num{ font-size:14px; }
-    .vol-toggle{ width:20px; height:20px; font-size:14px; }
-    .vol-badge{ padding:5px 8px; font-size:11px; }
-    .col-del{ font-size:11px; padding:3px 5px; }
+    .col-header{ padding:6px 8px 5px; gap:5px; }
+    .col-title{ font-size:12.5px; }
+    .col-drag-handle, .col-add-btn, .col-dup-btn{ width:19px; height:19px; }
+    .col-drag-handle svg, .col-dup-btn svg{ width:10px; height:10px; }
+    .col-header-btns{ gap:3px; }
+
+    /* cards colados: sem espaçamento entre eles nem para a borda da coluna —
+       a separação vira só uma linha fina, e a própria coluna numerada some com o padding */
+    .col-body{ padding:0; gap:0; }
+    .card{ border-radius:0; box-shadow:none; overflow:visible; border-top:1px solid rgba(255,255,255,0.18); }
+    .card:first-child{ border-top:none; }
+    .card-num{ width:18px; font-size:9.5px; }
+    .card-main{ padding:6px 38px 6px 7px; display:flex; align-items:baseline; justify-content:space-between; gap:6px; }
+    .card-actions{ top:6px; right:4px; flex-direction:row; gap:3px; }
+    .card-swap, .card-del{ width:14px; height:14px; font-size:9px; border-radius:4px; }
+    .card-name{ flex:1; min-width:0; font-size:12px; font-weight:800; margin-bottom:0; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-reps{ flex-shrink:0; font-size:10.5px; }
+
+    .col-footer{ padding:6px 9px 8px; gap:3px; }
+    .footer-label{ font-size:7.5px; margin-bottom:0; }
+    .col-total-num{ font-size:13px; }
+    .vol-toggle{ width:19px; height:19px; font-size:13px; }
+    .vol-badge{ padding:4px 7px; font-size:10px; }
+    .col-del{ font-size:10px; padding:2px 4px; }
     .fab{ width:44px; height:44px; font-size:22px; bottom:calc(10px + env(safe-area-inset-bottom)); }
     .volume-fab{ width:36px; height:36px; bottom:calc(60px + env(safe-area-inset-bottom)); }
     .volume-fab-icon{ font-size:16px; }
@@ -567,7 +577,7 @@ function renderBoard(){
     // body
     const body = document.createElement('div');
     body.className = 'col-body';
-    day.blocks.forEach(b=>{
+    day.blocks.forEach((b, idx)=>{
       const ex = exerciseById(b.exerciseId);
       if(!ex) return;
       const mainMuscle = ex.contrib[0][0];
@@ -585,17 +595,27 @@ function renderBoard(){
       };
       card.ondragend = ()=> card.classList.remove('dragging');
       card.innerHTML = `
-        <button class="card-del" style="color:${txtColor}">×</button>
-        <div class="card-name">${ex.nome}</div>
-        <div class="card-reps" style="color:${txtColor};opacity:0.8">${b.series}x ${b.repsMin}-${b.repsMax}</div>
+        <div class="card-num" style="color:${txtColor}">${idx + 1}</div>
+        <div class="card-main">
+          <div class="card-actions">
+            <button class="card-swap" style="color:${txtColor}" title="Trocar por outro exercício do mesmo grupo">⇄</button>
+            <button class="card-del" style="color:${txtColor}" title="Remover">×</button>
+          </div>
+          <div class="card-name">${ex.nome}</div>
+          <div class="card-reps" style="color:${txtColor};opacity:0.8">${b.series}x ${b.repsMin}-${b.repsMax}</div>
+        </div>
       `;
       card.querySelector('.card-del').onclick = (e)=>{
         e.stopPropagation();
         day.blocks = day.blocks.filter(x=>x.id!==b.id);
         renderAll();
       };
+      card.querySelector('.card-swap').onclick = (e)=>{
+        e.stopPropagation();
+        openSwapExercise(day.id, b.id);
+      };
       card.onclick = (e)=>{
-        if(e.target.classList.contains('card-del')) return;
+        if(e.target.closest('.card-actions')) return;
         openEditBlock(day.id, b.id);
       };
       body.appendChild(card);
@@ -970,6 +990,47 @@ function openEditBlock(dayId, blockId){
     block.repsMax = parseInt(document.getElementById('e-repmax').value)||1;
     closeModal(); renderAll();
   };
+  document.getElementById('overlay').classList.add('show');
+}
+
+// ---------- TROCA RÁPIDA: mesmo grupo muscular principal ----------
+function openSwapExercise(dayId, blockId){
+  const day = state.workoutDays.find(d=>d.id===dayId);
+  const block = day.blocks.find(b=>b.id===blockId);
+  const currentEx = exerciseById(block.exerciseId);
+  if(!currentEx) return;
+  const mainMuscle = currentEx.contrib[0][0];
+  const m = MUSCLES[mainMuscle];
+  const options = catalog.filter(ex => ex.contrib[0][0] === mainMuscle && ex.id !== currentEx.id);
+  const modal = document.getElementById('modal-content');
+  modal.innerHTML = `
+    <h3>Trocar "${currentEx.nome}"</h3>
+    <div class="footer-label" style="margin-bottom:10px;">Outros exercícios de ${m.label}</div>
+    <div class="catalog-list" id="swap-list"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancel-swap">Fechar</button>
+    </div>
+  `;
+  const listEl = modal.querySelector('#swap-list');
+  if(options.length === 0){
+    listEl.innerHTML = `<div class="catalog-empty">Não achei outro exercício de ${m.label} no banco ainda. Crie um novo pelo "+" da coluna.</div>`;
+  } else {
+    listEl.innerHTML = options.map(ex=>{
+      const musclesLabel = ex.contrib.map(([g])=>MUSCLES[g].label).join(' · ');
+      return `<div class="catalog-item" data-id="${ex.id}">
+        <span class="dot" style="background:${m.color}"></span>
+        <div><div class="n">${ex.nome}</div><div class="m">${musclesLabel}</div></div>
+      </div>`;
+    }).join('');
+    listEl.querySelectorAll('.catalog-item').forEach(item=>{
+      item.onclick = ()=>{
+        block.exerciseId = item.dataset.id;
+        closeModal();
+        renderAll();
+      };
+    });
+  }
+  modal.querySelector('#cancel-swap').onclick = closeModal;
   document.getElementById('overlay').classList.add('show');
 }
 
