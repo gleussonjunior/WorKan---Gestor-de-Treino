@@ -100,12 +100,20 @@
   }
   .column.dragover{ border-color:#4A90D9; }
   .col-header{
-    padding:12px 12px 8px; display:flex; align-items:center; justify-content:space-between;
+    padding:12px 12px 8px; display:flex; align-items:center; gap:6px;
     border-bottom:1px solid var(--border);
   }
+  .col-drag-handle{
+    background:var(--surface-2); border:none; color:var(--text-dim); width:24px; height:24px;
+    border-radius:7px; cursor:grab; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; touch-action:none;
+  }
+  .col-drag-handle:active{ cursor:grabbing; }
+  .col-drag-handle svg{ width:13px; height:13px; }
+  .column.col-dragging{ opacity:0.4; }
   .col-title{
     font-size:14px; font-weight:700; background:transparent; border:none; color:var(--text);
-    width:100%; font-family:var(--sans); outline:none;
+    width:100%; min-width:0; font-family:var(--sans); outline:none;
   }
   .col-add-btn{
     background:var(--surface-2); border:none; color:var(--text-dim); width:24px; height:24px;
@@ -453,23 +461,56 @@ function fmt(n){ return Number.isInteger(n) ? n : n.toFixed(1); }
 function renderBoard(){
   const board = document.getElementById('board');
   board.innerHTML = '';
+
+  // dragover/drop no board tratam a reordenação das colunas (treinos) inteiras
+  board.ondragover = e=>{
+    if(!e.dataTransfer.types.includes('columnid')) return;
+    e.preventDefault();
+  };
+  board.ondrop = e=>{
+    if(!e.dataTransfer.types.includes('columnid')) return;
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData('columnid');
+    const afterCol = getDragAfterColumn(board, e.clientX, e.clientY);
+    reorderWorkoutDay(draggedId, afterCol ? afterCol.dataset.dayId : null);
+  };
+
   state.workoutDays.forEach(day=>{
     const col = document.createElement('div');
     col.className = 'column';
-    col.ondragover = e=>{ e.preventDefault(); col.classList.add('dragover'); };
+    col.dataset.dayId = day.id;
+    col.ondragover = e=>{
+      if(e.dataTransfer.types.includes('columnid')) return; // deixa borbulhar pro board reordenar a coluna
+      e.preventDefault(); col.classList.add('dragover');
+    };
     col.ondragleave = ()=> col.classList.remove('dragover');
     col.ondrop = e=>{
+      if(e.dataTransfer.types.includes('columnid')) return;
       e.preventDefault(); col.classList.remove('dragover');
       const blockId = e.dataTransfer.getData('blockId');
       const fromDayId = e.dataTransfer.getData('fromDayId');
       const afterEl = getDragAfterElement(col.querySelector('.col-body'), e.clientY);
       moveBlock(blockId, fromDayId, day.id, afterEl ? afterEl.dataset.blockId : null);
     };
+    col.ondragstart = e=>{
+      e.dataTransfer.setData('columnid', day.id);
+      e.dataTransfer.effectAllowed = 'move';
+      col.classList.add('col-dragging');
+      // solta a trava assim que o navegador já capturou o drag (evita interferir no gesto)
+      setTimeout(()=>{ col.draggable = false; }, 0);
+    };
+    col.ondragend = ()=>{
+      col.draggable = false;
+      col.classList.remove('col-dragging');
+    };
 
     // header
     const header = document.createElement('div');
     header.className = 'col-header';
     header.innerHTML = `
+      <button class="col-drag-handle" title="Arrastar treino" aria-label="Arrastar treino">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+      </button>
       <input class="col-title" value="${day.nome}" />
       <div class="col-header-btns">
         <button class="col-dup-btn" title="Duplicar treino">
@@ -481,6 +522,11 @@ function renderBoard(){
     header.querySelector('.col-title').onchange = e=>{ day.nome = e.target.value; saveToStorage(); };
     header.querySelector('.col-dup-btn').onclick = ()=> duplicateDay(day.id);
     header.querySelector('.col-add-btn').onclick = ()=> openAddExercise(day.id);
+    const dragHandle = header.querySelector('.col-drag-handle');
+    dragHandle.addEventListener('pointerdown', ()=>{ col.draggable = true; });
+    ['pointerup','pointercancel'].forEach(evt=>{
+      dragHandle.addEventListener(evt, ()=>{ col.draggable = false; });
+    });
     col.appendChild(header);
 
     // body
@@ -610,6 +656,35 @@ function getDragAfterElement(container, y){
     }
     return closest;
   }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+}
+
+// Retorna a coluna antes da qual o treino arrastado deve ser inserido (null = inserir no fim)
+// Detecta o eixo automaticamente: lado a lado (retrato usa empilhado, então compara Y; paisagem compara X)
+function getDragAfterColumn(container, x, y){
+  const isRow = getComputedStyle(container).flexDirection !== 'column';
+  const cols = [...container.querySelectorAll('.column:not(.col-dragging)')];
+  return cols.reduce((closest, child)=>{
+    const box = child.getBoundingClientRect();
+    const offset = isRow ? (x - box.left - box.width/2) : (y - box.top - box.height/2);
+    if(offset < 0 && offset > closest.offset){
+      return { offset, element: child };
+    }
+    return closest;
+  }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+}
+
+function reorderWorkoutDay(draggedId, beforeId){
+  const days = state.workoutDays;
+  const fromIdx = days.findIndex(d=>d.id===draggedId);
+  if(fromIdx===-1) return;
+  const [day] = days.splice(fromIdx, 1);
+  let insertIdx = days.length;
+  if(beforeId){
+    const bi = days.findIndex(d=>d.id===beforeId);
+    if(bi!==-1) insertIdx = bi;
+  }
+  days.splice(insertIdx, 0, day);
+  renderAll();
 }
 
 // ---------- BOTÃO REDONDO DE VOLUME SEMANAL ----------
