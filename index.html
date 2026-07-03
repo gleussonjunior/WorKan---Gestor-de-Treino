@@ -353,9 +353,11 @@
 <div class="auth-gate hidden" id="auth-gate">
   <div class="auth-box">
     <h2>Montagem de Treino</h2>
-    <p>Entre com seu e-mail pra sincronizar seus treinos entre aparelhos. A gente manda um link, sem senha.</p>
+    <p>Crie um e-mail e senha só seus pra sincronizar os treinos entre aparelhos. Sem confirmação, sem link.</p>
     <input type="email" id="auth-email" placeholder="seu@email.com" autocomplete="email" />
-    <button id="auth-send-btn">Enviar link de acesso</button>
+    <input type="password" id="auth-password" placeholder="Senha (mín. 6 caracteres)" autocomplete="current-password" />
+    <button id="auth-signin-btn">Entrar</button>
+    <button id="auth-signup-btn" style="background:transparent; color:var(--text-dim); margin-top:8px;">Criar conta nova</button>
     <div class="auth-status" id="auth-status"></div>
   </div>
 </div>
@@ -1459,21 +1461,47 @@ async function startAppForUser(userId){
 
 function wireAuthForm(){
   const emailInput = document.getElementById('auth-email');
-  const sendBtn = document.getElementById('auth-send-btn');
+  const passInput = document.getElementById('auth-password');
+  const signinBtn = document.getElementById('auth-signin-btn');
+  const signupBtn = document.getElementById('auth-signup-btn');
   const statusEl = document.getElementById('auth-status');
-  const send = async ()=>{
+
+  const readCreds = ()=>{
     const email = emailInput.value.trim();
-    if(!email || !email.includes('@')){ statusEl.textContent = 'Digite um e-mail válido.'; return; }
-    sendBtn.disabled = true;
-    statusEl.textContent = 'Enviando…';
-    const { error } = await supabaseClient.auth.signInWithOtp({
-      email, options:{ emailRedirectTo: window.location.href }
-    });
-    sendBtn.disabled = false;
-    statusEl.textContent = error ? ('Erro: ' + error.message) : 'Link enviado! Abre seu e-mail e toca nele nesse mesmo aparelho.';
+    const password = passInput.value;
+    if(!email || !email.includes('@')){ statusEl.textContent = 'Digite um e-mail válido.'; return null; }
+    if(password.length < 6){ statusEl.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return null; }
+    return { email, password };
   };
-  sendBtn.onclick = send;
-  emailInput.addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
+
+  const signIn = async ()=>{
+    const creds = readCreds();
+    if(!creds) return;
+    signinBtn.disabled = true;
+    statusEl.textContent = 'Entrando…';
+    const { error } = await supabaseClient.auth.signInWithPassword(creds);
+    signinBtn.disabled = false;
+    if(error){ statusEl.textContent = 'Erro: ' + error.message; return; }
+    statusEl.textContent = 'Tudo certo!';
+    // não precisa fazer nada aqui — o onAuthStateChange (SIGNED_IN) cuida de entrar no app
+  };
+
+  const signUp = async ()=>{
+    const creds = readCreds();
+    if(!creds) return;
+    signupBtn.disabled = true;
+    statusEl.textContent = 'Criando conta…';
+    const { error } = await supabaseClient.auth.signUp(creds);
+    signupBtn.disabled = false;
+    if(error){ statusEl.textContent = 'Erro: ' + error.message; return; }
+    statusEl.textContent = 'Conta criada!';
+  };
+
+  signinBtn.onclick = signIn;
+  signupBtn.onclick = signUp;
+  [emailInput, passInput].forEach(inp=>{
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') signIn(); });
+  });
 }
 
 async function signOut(){
