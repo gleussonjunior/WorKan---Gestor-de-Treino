@@ -260,6 +260,29 @@
   .catalog-list{ max-height:44vh; overflow-y:auto; }
   .catalog-empty{ font-size:12px; color:var(--text-faint); padding:14px 4px; text-align:center; }
 
+  /* Login (Supabase) */
+  .auth-loading, .auth-gate{
+    position:fixed; inset:0; z-index:200; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .auth-loading.hidden, .auth-gate.hidden{ display:none; }
+  .auth-box{ width:100%; max-width:320px; text-align:center; }
+  .auth-box h2{ font-size:20px; margin:0 0 8px; }
+  .auth-box p{ font-size:13px; color:var(--text-dim); margin:0 0 20px; line-height:1.5; }
+  .auth-box input{
+    width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-sm); padding:12px 14px; font-size:14px; font-family:var(--sans);
+    margin-bottom:10px; text-align:center; outline:none;
+  }
+  .auth-box button{
+    width:100%; background:#1B1D24; color:#fff; border:none; border-radius:var(--radius-sm);
+    padding:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:var(--sans);
+  }
+  .auth-box button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .auth-status{ font-size:12px; color:var(--text-dim); margin-top:14px; min-height:16px; line-height:1.4; }
+  .sign-out-row{ text-align:center; margin-top:6px; }
+  .sign-out-link{ background:none; border:none; color:var(--text-faint); font-size:12px; cursor:pointer; padding:6px; }
+
   .undo-toast{
     position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
     background:rgba(27,29,36,0.94); color:#fff; padding:11px 20px; border-radius:999px;
@@ -320,8 +343,22 @@
     .volume-fab-dot{ font-size:8px; min-width:14px; height:14px; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
+
+<div class="auth-loading" id="auth-loading">
+  <div class="footer-label">Carregando…</div>
+</div>
+<div class="auth-gate hidden" id="auth-gate">
+  <div class="auth-box">
+    <h2>Montagem de Treino</h2>
+    <p>Entre com seu e-mail pra sincronizar seus treinos entre aparelhos. A gente manda um link, sem senha.</p>
+    <input type="email" id="auth-email" placeholder="seu@email.com" autocomplete="email" />
+    <button id="auth-send-btn">Enviar link de acesso</button>
+    <div class="auth-status" id="auth-status"></div>
+  </div>
+</div>
 
 <div class="board" id="board"></div>
 
@@ -450,6 +487,57 @@ function saveToStorage(){
       volumeDisplaySelection,
     }));
   } catch(e){ /* localStorage indisponível ou cheio — segue sem salvar */ }
+  saveRemoteStateDebounced();
+}
+
+// ---------- SUPABASE (sincronizar entre aparelhos) ----------
+// Preencha com os dados do seu projeto em supabase.com → Project Settings → API.
+// Enquanto isso não for preenchido, o app funciona 100% normal só com localStorage (como já era).
+const SUPABASE_URL = 'https://hhxsditeluwithwplpen.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoeHNkaXRlbHV3aXRod3BscGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMzM2NzAsImV4cCI6MjA5ODYwOTY3MH0.XX4Wc-sTJJvYXcf7MwFegyUnddCHFdUXXrcbVDFaLGU';
+const SUPABASE_CONFIGURED = SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length > 20;
+const supabaseClient = (SUPABASE_CONFIGURED && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+let currentUserId = null;
+let remoteSaveTimer = null;
+
+function saveRemoteStateDebounced(){
+  if(!supabaseClient || !currentUserId) return;
+  clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = setTimeout(saveRemoteStateNow, 600);
+}
+
+async function saveRemoteStateNow(){
+  if(!supabaseClient || !currentUserId) return;
+  try {
+    await supabaseClient.from('app_state').upsert({
+      user_id: currentUserId,
+      data: { plans: appState.plans, activePlanId: appState.activePlanId, catalog, volumeDisplaySelection },
+      updated_at: new Date().toISOString(),
+    });
+  } catch(e){ /* sem internet no momento — localStorage já guardou local, tenta de novo na próxima mudança */ }
+}
+
+async function loadRemoteState(userId){
+  try {
+    const { data, error } = await supabaseClient.from('app_state').select('data').eq('user_id', userId).maybeSingle();
+    if(error) return null;
+    return data ? data.data : null;
+  } catch(e){ return null; }
+}
+
+// aplica um objeto salvo (do localStorage OU do Supabase) no estado em memória
+function applySavedState(saved){
+  if(saved && Array.isArray(saved.plans) && saved.plans.length){
+    appState.plans = saved.plans;
+    appState.activePlanId = saved.activePlanId;
+    if(!appState.plans.find(p=>p.id===appState.activePlanId)) appState.activePlanId = appState.plans[0].id;
+    if(Array.isArray(saved.catalog) && saved.catalog.length) catalog = saved.catalog;
+    if(saved.volumeDisplaySelection) volumeDisplaySelection = saved.volumeDisplaySelection;
+  }
+  state = appState.plans.find(p=>p.id===appState.activePlanId);
 }
 
 function defaultPlan(nome){
@@ -1177,12 +1265,15 @@ function openPlanSwitcher(){
     <div class="modal-actions" id="plan-switcher-close">
       <button class="btn-cancel" id="cancel-plan" style="width:100%;">Fechar</button>
     </div>
+    ${currentUserId ? `<div class="sign-out-row"><button class="sign-out-link" id="btn-sign-out">Sair da conta</button></div>` : ''}
   `;
   renderPlanList();
   const newPlanBtn = modal.querySelector('#btn-new-plan');
   const newPlanForm = modal.querySelector('#new-plan-form');
   const closeRow = modal.querySelector('#plan-switcher-close');
   modal.querySelector('#cancel-plan').onclick = closeModal;
+  const signOutBtn = modal.querySelector('#btn-sign-out');
+  if(signOutBtn) signOutBtn.onclick = signOut;
   newPlanBtn.onclick = ()=>{
     newPlanBtn.style.display = 'none';
     closeRow.style.display = 'none';
@@ -1343,7 +1434,86 @@ function renderAll(){
   syncCardRowHeights();
 }
 
-renderAll();
+// ---------- BOOT: decide se mostra tela de login ou vai direto pro app ----------
+function showAuthGate(show){
+  document.getElementById('auth-gate').classList.toggle('hidden', !show);
+}
+function showAuthLoading(show){
+  document.getElementById('auth-loading').classList.toggle('hidden', !show);
+}
+
+async function startAppForUser(userId){
+  currentUserId = userId;
+  const remote = await loadRemoteState(userId);
+  if(remote){
+    applySavedState(remote);
+  } else {
+    // primeira vez desse usuário: manda o que já tinha localmente (ou o padrão) pro Supabase
+    await saveRemoteStateNow();
+  }
+  lastSnapshot = JSON.stringify({ plans: appState.plans, activePlanId: appState.activePlanId });
+  showAuthLoading(false);
+  showAuthGate(false);
+  renderAll();
+}
+
+function wireAuthForm(){
+  const emailInput = document.getElementById('auth-email');
+  const sendBtn = document.getElementById('auth-send-btn');
+  const statusEl = document.getElementById('auth-status');
+  const send = async ()=>{
+    const email = emailInput.value.trim();
+    if(!email || !email.includes('@')){ statusEl.textContent = 'Digite um e-mail válido.'; return; }
+    sendBtn.disabled = true;
+    statusEl.textContent = 'Enviando…';
+    const { error } = await supabaseClient.auth.signInWithOtp({
+      email, options:{ emailRedirectTo: window.location.href }
+    });
+    sendBtn.disabled = false;
+    statusEl.textContent = error ? ('Erro: ' + error.message) : 'Link enviado! Abre seu e-mail e toca nele nesse mesmo aparelho.';
+  };
+  sendBtn.onclick = send;
+  emailInput.addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
+}
+
+async function signOut(){
+  if(!supabaseClient) return;
+  await supabaseClient.auth.signOut();
+  currentUserId = null;
+  closeModal();
+  showAuthLoading(false);
+  showAuthGate(true);
+}
+
+async function boot(){
+  if(!supabaseClient){
+    // Supabase ainda não configurado — funciona só localmente, como antes
+    showAuthLoading(false);
+    renderAll();
+    return;
+  }
+  wireAuthForm();
+  const { data:{ session } } = await supabaseClient.auth.getSession();
+  if(session && session.user){
+    await startAppForUser(session.user.id);
+  } else {
+    showAuthLoading(false);
+    showAuthGate(true);
+  }
+  supabaseClient.auth.onAuthStateChange((event, session)=>{
+    if(event === 'SIGNED_IN' && session && session.user && session.user.id !== currentUserId){
+      showAuthGate(false);
+      showAuthLoading(true);
+      startAppForUser(session.user.id);
+    }
+    if(event === 'SIGNED_OUT'){
+      currentUserId = null;
+      showAuthGate(true);
+    }
+  });
+}
+
+boot();
 </script>
 </body>
 </html>
