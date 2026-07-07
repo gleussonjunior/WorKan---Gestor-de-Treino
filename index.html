@@ -64,11 +64,19 @@
      sobre fundo claro, legível nos dois temas. A caixa fechada do select continua com
      nosso estilo normal (--pill, --text etc.), isso só afeta o menu suspenso do sistema. */
   select{ color-scheme: light; }
+  /* iOS às vezes calcula 100vh maior que a área visível real (barra do Safari, notch, etc.),
+     deixando uma tira sem o degradê embaixo do body. Colocando o mesmo fundo no <html>
+     também, essa tira (se existir) mostra o mesmo gradiente em vez de ficar cortada. */
+  html{
+    height:100%;
+    background:var(--wall); background-attachment:fixed;
+  }
   body{
     margin:0; color:var(--text);
     background:var(--wall); background-attachment:fixed;
     font-family:var(--sans); -webkit-font-smoothing:antialiased;
-    height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden;
+    min-height:100vh; min-height:100dvh; height:100vh; height:100dvh;
+    display:flex; flex-direction:column; overflow:hidden;
   }
 
   /* Top bar */
@@ -192,7 +200,6 @@
     display:flex; align-items:center; justify-content:center;
     font-family:var(--mono); font-size:10px; font-weight:800; color:var(--sub);
   }
-  .card-muscle{ font-size:11.5px; font-weight:700; }
   .card-reps{ font-family:var(--mono); font-size:11.5px; font-weight:600; color:var(--sub); }
   .drop-indicator{
     background:var(--accent); border-radius:5px; flex-shrink:0;
@@ -366,7 +373,7 @@
   ::-webkit-scrollbar-thumb{ background:var(--stroke); border-radius:4px; }
   ::-webkit-scrollbar-track{ background:transparent; }
 
-  /* Retrato (celular em pé): visão de abas, um treino por vez, lista agrupada — estilo 1c */
+  /* Retrato (celular em pé): visão de abas, um treino por vez — cards iguais ao modo paisagem */
   .portrait-wrap{ display:flex; flex-direction:column; height:100%; width:100%; }
   .portrait-header{ flex-shrink:0; padding:2px calc(4px + env(safe-area-inset-right)) 10px calc(4px + env(safe-area-inset-left)); }
   .portrait-title-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
@@ -398,25 +405,13 @@
     background:var(--sheet); border:1px solid var(--stroke); border-radius:var(--radius); overflow:hidden;
     -webkit-backdrop-filter:blur(30px) saturate(1.8); backdrop-filter:blur(30px) saturate(1.8);
     box-shadow:0 14px 34px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.16);
+    padding:8px; display:flex; flex-direction:column; gap:8px;
   }
-  .portrait-row{
-    display:flex; align-items:center; gap:12px; padding:14px 15px; border-top:1px solid var(--stroke);
-    cursor:pointer; transition:opacity 0.15s ease;
+  .portrait-add-card{
+    display:flex; align-items:center; gap:10px; padding:12px 13px; border-radius:var(--radius-card);
+    border:1.5px dashed var(--stroke); color:var(--accent); cursor:pointer; background:var(--glass);
   }
-  .portrait-row:first-child{ border-top:none; }
-  .portrait-row.dragging{ opacity:0.4; }
-  .portrait-row-num{
-    flex-shrink:0; width:22px; height:22px; border-radius:50%; background:var(--pill);
-    display:flex; align-items:center; justify-content:center;
-    font-family:var(--mono); font-size:11px; font-weight:800; color:var(--sub);
-  }
-  .portrait-row-dot{ flex-shrink:0; width:10px; height:10px; border-radius:50%; }
-  .portrait-row-main{ flex:1; min-width:0; }
-  .portrait-row-name{ font-size:15px; font-weight:700; letter-spacing:-0.01em; color:var(--text); text-wrap:pretty; }
-  .portrait-row-muscle{ font-size:11.5px; font-weight:700; margin-top:3px; }
-  .portrait-row-reps{ flex-shrink:0; font-family:var(--mono); font-size:13px; font-weight:600; color:var(--sub); }
-  .portrait-row-chev{ flex-shrink:0; opacity:0.35; }
-  .portrait-row-add{ color:var(--accent); }
+  .portrait-add-card:active{ transform:scale(0.98); }
   .portrait-add-icon{
     flex-shrink:0; width:24px; height:24px; border-radius:8px; background:var(--accent-soft);
     display:flex; align-items:center; justify-content:center;
@@ -442,7 +437,7 @@
     .card-main{ padding:9px 30px 9px 11px; gap:3px; }
     .card-name{ font-size:13px; }
     .card-sub{ gap:6px; }
-    .card-muscle, .card-reps{ font-size:10.5px; }
+    .card-reps{ font-size:10.5px; }
     .col-footer{ padding:9px 11px; gap:4px; }
     .col-total-num{ font-size:14px; }
     .col-actions{ padding:0 9px 9px; gap:6px; }
@@ -836,6 +831,50 @@ function ensureActiveDay(){
     state.activeDayId = state.workoutDays[0] ? state.workoutDays[0].id : null;
   }
 }
+
+// Card de exercício — usado tanto no board (paisagem/desktop) quanto na visão de abas (retrato),
+// pra manter os dois modos com exatamente o mesmo visual. A cor (fundo tingido + borda) já indica
+// o grupo muscular, então não repetimos o nome do músculo em texto.
+function buildExerciseCard(day, block, idx){
+  const ex = exerciseById(block.exerciseId);
+  if(!ex) return null;
+  const mainMuscle = ex.contrib[0][0];
+  const mColor = MUSCLES[mainMuscle].color;
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.blockId = block.id;
+  card.style.background = mColor + '26';
+  card.style.borderLeft = '5px solid ' + mColor;
+  card.draggable = true;
+  card.ondragstart = e=>{
+    card.classList.add('dragging');
+    e.dataTransfer.setData('blockId', block.id);
+    e.dataTransfer.setData('fromDayId', day.id);
+  };
+  card.ondragend = ()=> card.classList.remove('dragging');
+  card.innerHTML = `
+    <div class="card-main">
+      <div class="card-actions">
+        <button class="card-del" title="Remover">×</button>
+      </div>
+      <div class="card-name">${ex.nome}</div>
+      <div class="card-sub">
+        <span class="card-num">${idx+1}</span>
+        <span class="card-reps">${block.series}x ${block.repsMin}-${block.repsMax}</span>
+      </div>
+    </div>
+  `;
+  card.querySelector('.card-del').onclick = (e)=>{
+    e.stopPropagation();
+    day.blocks = day.blocks.filter(x=>x.id!==block.id);
+    renderAll();
+  };
+  card.onclick = (e)=>{
+    if(e.target.closest('.card-actions')) return;
+    openEditBlock(day.id, block.id);
+  };
+  return card;
+}
 function renderBoard(){
   const board = document.getElementById('board');
   board.innerHTML = '';
@@ -920,45 +959,8 @@ function renderBoard(){
     const body = document.createElement('div');
     body.className = 'col-body';
     day.blocks.forEach((b, idx)=>{
-      const ex = exerciseById(b.exerciseId);
-      if(!ex) return;
-      const mainMuscle = ex.contrib[0][0];
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.dataset.blockId = b.id;
-      const mColor = MUSCLES[mainMuscle].color;
-      card.style.background = mColor + '26';
-      card.style.borderLeft = '5px solid ' + mColor;
-      card.draggable = true;
-      card.ondragstart = e=>{
-        card.classList.add('dragging');
-        e.dataTransfer.setData('blockId', b.id);
-        e.dataTransfer.setData('fromDayId', day.id);
-      };
-      card.ondragend = ()=> card.classList.remove('dragging');
-      card.innerHTML = `
-        <div class="card-main">
-          <div class="card-actions">
-            <button class="card-del" title="Remover">×</button>
-          </div>
-          <div class="card-name">${ex.nome}</div>
-          <div class="card-sub">
-            <span class="card-num">${idx+1}</span>
-            <span class="card-muscle" style="color:${mColor}">${MUSCLES[mainMuscle].label}</span>
-            <span class="card-reps">${b.series}x ${b.repsMin}-${b.repsMax}</span>
-          </div>
-        </div>
-      `;
-      card.querySelector('.card-del').onclick = (e)=>{
-        e.stopPropagation();
-        day.blocks = day.blocks.filter(x=>x.id!==b.id);
-        renderAll();
-      };
-      card.onclick = (e)=>{
-        if(e.target.closest('.card-actions')) return;
-        openEditBlock(day.id, b.id);
-      };
-      body.appendChild(card);
+      const card = buildExerciseCard(day, b, idx);
+      if(card) body.appendChild(card);
     });
     col.appendChild(body);
 
@@ -1087,44 +1089,20 @@ function renderPortraitTabs(board){
   };
 
   day.blocks.forEach((b, idx)=>{
-    const ex = exerciseById(b.exerciseId);
-    if(!ex) return;
-    const mainMuscle = ex.contrib[0][0];
-    const mColor = MUSCLES[mainMuscle].color;
-    const row = document.createElement('div');
-    row.className = 'portrait-row';
-    row.dataset.blockId = b.id;
-    row.draggable = true;
-    row.ondragstart = e=>{
-      row.classList.add('dragging');
-      e.dataTransfer.setData('blockId', b.id);
-      e.dataTransfer.setData('fromDayId', day.id);
-    };
-    row.ondragend = ()=> row.classList.remove('dragging');
-    row.innerHTML = `
-      <span class="portrait-row-num">${idx+1}</span>
-      <span class="portrait-row-dot" style="background:${mColor}; box-shadow:0 0 8px ${mColor}"></span>
-      <div class="portrait-row-main">
-        <div class="portrait-row-name">${ex.nome}</div>
-        <div class="portrait-row-muscle" style="color:${mColor}">${MUSCLES[mainMuscle].label}</div>
-      </div>
-      <span class="portrait-row-reps">${b.series}x ${b.repsMin}-${b.repsMax}</span>
-      <svg class="portrait-row-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg>
-    `;
-    row.onclick = ()=> openEditBlock(day.id, b.id);
-    listCard.appendChild(row);
+    const card = buildExerciseCard(day, b, idx);
+    if(card) listCard.appendChild(card);
   });
 
-  const addRow = document.createElement('div');
-  addRow.className = 'portrait-row portrait-row-add';
-  addRow.innerHTML = `
+  const addCard = document.createElement('div');
+  addCard.className = 'portrait-add-card';
+  addCard.innerHTML = `
     <span class="portrait-add-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" width="15" height="15"><path d="M12 5v14M5 12h14"/></svg>
     </span>
     <span class="portrait-add-label">Adicionar exercício</span>
   `;
-  addRow.onclick = ()=> openAddExercise(day.id);
-  listCard.appendChild(addRow);
+  addCard.onclick = ()=> openAddExercise(day.id);
+  listCard.appendChild(addCard);
 
   listWrap.appendChild(listCard);
   wrap.appendChild(listWrap);
