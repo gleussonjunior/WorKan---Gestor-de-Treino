@@ -193,8 +193,9 @@
     display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px;
     line-height:1; padding:0; color:var(--sub);
   }
-  .card-name{ font-size:14.5px; font-weight:700; line-height:1.25; letter-spacing:-0.01em; color:var(--text); text-wrap:pretty; }
-  .card-sub{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .card-title-row{ display:flex; align-items:center; gap:8px; }
+  .card-name{ flex:1; min-width:0; font-size:14.5px; font-weight:700; line-height:1.25; letter-spacing:-0.01em; color:var(--text); text-wrap:pretty; }
+  .card-sub{ display:flex; align-items:center; gap:8px; }
   .card-num{
     flex-shrink:0; width:17px; height:17px; border-radius:50%; background:var(--pill);
     display:flex; align-items:center; justify-content:center;
@@ -881,9 +882,11 @@ function buildExerciseCard(day, block, idx){
       <div class="card-actions">
         <button class="card-del" title="Remover">×</button>
       </div>
-      <div class="card-name">${ex.nome}</div>
-      <div class="card-sub">
+      <div class="card-title-row">
         <span class="card-num">${idx+1}</span>
+        <div class="card-name">${ex.nome}</div>
+      </div>
+      <div class="card-sub">
         <span class="card-reps">${block.series}x ${block.repsMin}-${block.repsMax}</span>
       </div>
     </div>
