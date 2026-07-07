@@ -58,6 +58,12 @@
   *{ box-sizing:border-box; }
   html,body{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   input,select,textarea{ -webkit-user-select:text; user-select:text; }
+  /* O picker nativo do <select> (lista de opções) usa as cores do sistema, não as nossas
+     variáveis — em modo escuro isso deixava texto claro sobre fundo claro (baixo contraste).
+     Forçando color-scheme:light só no picker nativo, o texto das opções fica sempre escuro
+     sobre fundo claro, legível nos dois temas. A caixa fechada do select continua com
+     nosso estilo normal (--pill, --text etc.), isso só afeta o menu suspenso do sistema. */
+  select{ color-scheme: light; }
   body{
     margin:0; color:var(--text);
     background:var(--wall); background-attachment:fixed;
@@ -181,6 +187,11 @@
   }
   .card-name{ font-size:14.5px; font-weight:700; line-height:1.25; letter-spacing:-0.01em; color:var(--text); text-wrap:pretty; }
   .card-sub{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .card-num{
+    flex-shrink:0; width:17px; height:17px; border-radius:50%; background:var(--pill);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; font-weight:800; color:var(--sub);
+  }
   .card-muscle{ font-size:11.5px; font-weight:700; }
   .card-reps{ font-family:var(--mono); font-size:11.5px; font-weight:600; color:var(--sub); }
   .drop-indicator{
@@ -295,6 +306,9 @@
     font-size:13.5px; font-weight:700; color:var(--text); font-family:var(--sans);
   }
   .plan-row-meta{ font-size:11px; color:var(--faint); }
+  .plan-row-actions{ display:flex; align-items:center; gap:2px; flex-shrink:0; }
+  .plan-row-dup{ background:none; border:none; color:var(--faint); cursor:pointer; padding:5px 6px; display:flex; align-items:center; justify-content:center; }
+  .plan-row-dup svg{ width:15px; height:15px; }
   .plan-row-del{ background:none; border:none; color:var(--faint); font-size:16px; cursor:pointer; flex-shrink:0; padding:2px 6px; }
 
   .search-row{ display:flex; gap:8px; margin-bottom:10px; }
@@ -352,10 +366,65 @@
   ::-webkit-scrollbar-thumb{ background:var(--stroke); border-radius:4px; }
   ::-webkit-scrollbar-track{ background:transparent; }
 
-  /* Retrato: empilha treinos na vertical */
+  /* Retrato (celular em pé): visão de abas, um treino por vez, lista agrupada — estilo 1c */
+  .portrait-wrap{ display:flex; flex-direction:column; height:100%; width:100%; }
+  .portrait-header{ flex-shrink:0; padding:2px calc(4px + env(safe-area-inset-right)) 10px calc(4px + env(safe-area-inset-left)); }
+  .portrait-title-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+  .portrait-day-title{
+    flex:1; min-width:0; background:transparent; border:none; outline:none; padding:0;
+    font-family:var(--sans); font-size:26px; font-weight:800; letter-spacing:-0.02em; color:var(--text);
+  }
+  .portrait-day-menu{
+    flex-shrink:0; width:34px; height:34px; border-radius:50%; background:var(--glass); border:1px solid var(--stroke);
+    color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer;
+    -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
+  }
+  .portrait-day-menu:active{ transform:scale(0.94); }
+  .portrait-tabs{ display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
+  .portrait-tab-pill{
+    flex-shrink:0; background:var(--glass); border:1px solid var(--stroke); color:var(--sub);
+    padding:9px 15px; border-radius:999px; font:600 13.5px/1 var(--sans); cursor:pointer;
+    -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+  }
+  .portrait-tab-pill.active{ color:var(--text); background:var(--glass2); box-shadow:inset 0 1px 0 rgba(255,255,255,0.3); }
+  .portrait-tab-pill:active{ transform:scale(0.96); }
+  .portrait-tab-add{
+    flex-shrink:0; width:34px; height:34px; border-radius:50%; background:var(--glass); border:1px dashed var(--stroke);
+    color:var(--sub); font-size:17px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .portrait-tab-add:active{ transform:scale(0.94); }
+  .portrait-list-scroll{ flex:1; overflow-y:auto; padding:0 calc(4px + env(safe-area-inset-right)) 96px calc(4px + env(safe-area-inset-left)); }
+  .portrait-list-card{
+    background:var(--sheet); border:1px solid var(--stroke); border-radius:var(--radius); overflow:hidden;
+    -webkit-backdrop-filter:blur(30px) saturate(1.8); backdrop-filter:blur(30px) saturate(1.8);
+    box-shadow:0 14px 34px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.16);
+  }
+  .portrait-row{
+    display:flex; align-items:center; gap:12px; padding:14px 15px; border-top:1px solid var(--stroke);
+    cursor:pointer; transition:opacity 0.15s ease;
+  }
+  .portrait-row:first-child{ border-top:none; }
+  .portrait-row.dragging{ opacity:0.4; }
+  .portrait-row-num{
+    flex-shrink:0; width:22px; height:22px; border-radius:50%; background:var(--pill);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:11px; font-weight:800; color:var(--sub);
+  }
+  .portrait-row-dot{ flex-shrink:0; width:10px; height:10px; border-radius:50%; }
+  .portrait-row-main{ flex:1; min-width:0; }
+  .portrait-row-name{ font-size:15px; font-weight:700; letter-spacing:-0.01em; color:var(--text); text-wrap:pretty; }
+  .portrait-row-muscle{ font-size:11.5px; font-weight:700; margin-top:3px; }
+  .portrait-row-reps{ flex-shrink:0; font-family:var(--mono); font-size:13px; font-weight:600; color:var(--sub); }
+  .portrait-row-chev{ flex-shrink:0; opacity:0.35; }
+  .portrait-row-add{ color:var(--accent); }
+  .portrait-add-icon{
+    flex-shrink:0; width:24px; height:24px; border-radius:8px; background:var(--accent-soft);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .portrait-add-label{ font-size:14.5px; font-weight:700; }
+  .portrait-empty{ font-size:12px; color:var(--faint); padding:16px 15px; text-align:center; }
   @media (max-width: 700px) and (orientation: portrait){
-    .board{ flex-direction:column; overflow-x:hidden; overflow-y:auto; }
-    .column{ width:100%; max-width:none; flex:0 0 auto; }
+    .board{ overflow:hidden; padding:0; }
   }
 
   /* Paisagem (celular deitado): compacto */
@@ -1360,12 +1429,16 @@ function renderPlanList(){
   listEl.innerHTML = appState.plans.map(p=>{
     const isActive = p.id === appState.activePlanId;
     const n = p.workoutDays.length;
+    const dupBtn = `<button class="plan-row-dup" data-id="${p.id}" title="Duplicar divisão">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    </button>`;
     if(isActive){
       return `<div class="plan-row active" data-id="${p.id}">
         <div class="plan-row-main">
           <input class="plan-rename-input" id="plan-rename-input" value="${p.nome}" />
           <div class="plan-row-meta">${n} treino${n===1?'':'s'} · atual — toque pra renomear</div>
         </div>
+        <div class="plan-row-actions">${dupBtn}</div>
       </div>`;
     }
     return `<div class="plan-row" data-id="${p.id}">
@@ -1373,7 +1446,10 @@ function renderPlanList(){
         <div class="plan-row-name">${p.nome}</div>
         <div class="plan-row-meta">${n} treino${n===1?'':'s'}</div>
       </div>
-      ${appState.plans.length>1 ? `<button class="plan-row-del" data-id="${p.id}" title="Excluir divisão">×</button>` : ''}
+      <div class="plan-row-actions">
+        ${dupBtn}
+        ${appState.plans.length>1 ? `<button class="plan-row-del" data-id="${p.id}" title="Excluir divisão">×</button>` : ''}
+      </div>
     </div>`;
   }).join('');
 
@@ -1412,6 +1488,31 @@ function renderPlanList(){
       renderAll();
     };
   });
+  listEl.querySelectorAll('.plan-row-dup').forEach(btn=>{
+    btn.onclick = (e)=>{
+      e.stopPropagation();
+      duplicatePlan(btn.dataset.id);
+    };
+  });
+}
+
+function duplicatePlan(planId){
+  const plan = appState.plans.find(p=>p.id===planId);
+  if(!plan) return;
+  const copy = {
+    id: id(),
+    nome: plan.nome + ' (cópia)',
+    workoutDays: plan.workoutDays.map(day=>({
+      id: id(),
+      nome: day.nome,
+      volumeExpanded: day.volumeExpanded,
+      blocks: day.blocks.map(b=>({ id:id(), exerciseId:b.exerciseId, series:b.series, repsMin:b.repsMin, repsMax:b.repsMax })),
+    })),
+  };
+  const idx = appState.plans.findIndex(p=>p.id===planId);
+  appState.plans.splice(idx+1, 0, copy);
+  saveToStorage();
+  renderPlanList();
 }
 
 // ---------- BOTÃO FLUTUANTE (+) ----------
