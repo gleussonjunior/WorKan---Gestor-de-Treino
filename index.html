@@ -67,13 +67,17 @@
   /* iOS às vezes calcula 100vh maior que a área visível real (barra do Safari, notch, etc.),
      deixando uma tira sem o degradê embaixo do body. Colocando o mesmo fundo no <html>
      também, essa tira (se existir) mostra o mesmo gradiente em vez de ficar cortada. */
-  html{
-    height:100%;
-    background:var(--wall); background-attachment:fixed;
+  /* O gradiente de fundo ficava cortado embaixo em alguns aparelhos porque 100vh/100dvh no iOS
+     às vezes calcula uma altura diferente da área visível real (por causa da barra do Safari,
+     notch etc.), deixando uma tira sem fundo. Resolvendo de vez com uma camada position:fixed
+     que cobre exatamente a viewport visível a qualquer momento, sem depender de vh/dvh. */
+  .app-bg{
+    position:fixed; inset:0; z-index:-1;
+    background:var(--wall);
   }
+  html{ height:100%; }
   body{
     margin:0; color:var(--text);
-    background:var(--wall); background-attachment:fixed;
     font-family:var(--sans); -webkit-font-smoothing:antialiased;
     min-height:100vh; min-height:100dvh; height:100vh; height:100dvh;
     display:flex; flex-direction:column; overflow:hidden;
@@ -194,8 +198,11 @@
     line-height:1; padding:0; color:var(--sub);
   }
   .card-title-row{ display:flex; align-items:center; gap:8px; }
-  .card-name{ flex:1; min-width:0; font-size:14.5px; font-weight:700; line-height:1.25; letter-spacing:-0.01em; color:var(--text); text-wrap:pretty; }
-  .card-sub{ display:flex; align-items:center; gap:8px; }
+  .card-name{
+    flex:1; min-width:0; font-size:14.5px; font-weight:700; letter-spacing:-0.01em; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .card-sub{ display:flex; align-items:center; gap:8px; margin-left:25px; }
   .card-num{
     flex-shrink:0; width:17px; height:17px; border-radius:50%; background:var(--pill);
     display:flex; align-items:center; justify-content:center;
@@ -451,6 +458,7 @@
 </head>
 <body>
 
+<div class="app-bg" aria-hidden="true"></div>
 <div class="auth-loading" id="auth-loading">
   <div class="footer-label">Carregando…</div>
 </div>
