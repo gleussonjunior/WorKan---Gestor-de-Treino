@@ -194,26 +194,13 @@
     line-height:1; padding:0; color:var(--sub);
   }
   .card-name{ font-size:14.5px; font-weight:700; line-height:1.25; letter-spacing:-0.01em; color:var(--text); text-wrap:pretty; }
-  .card-sub{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .card-sub{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .card-num{
     flex-shrink:0; width:17px; height:17px; border-radius:50%; background:var(--pill);
     display:flex; align-items:center; justify-content:center;
     font-family:var(--mono); font-size:10px; font-weight:800; color:var(--sub);
   }
   .card-reps{ font-family:var(--mono); font-size:11.5px; font-weight:600; color:var(--sub); }
-  /* Variante "wide" — retrato tem largura de sobra, então número + nome + reps + remover
-     cabem numa linha só, em vez de empilhar como na coluna estreita da paisagem. */
-  .card-main-wide{ display:flex; align-items:center; gap:13px; padding:15px 14px 15px 16px; }
-  .card-name-wide{
-    flex:1; min-width:0; font-size:15.5px; font-weight:700; letter-spacing:-0.01em;
-    color:var(--text); text-wrap:pretty;
-  }
-  .card-reps-wide{ flex-shrink:0; font-size:13px; }
-  .card-del-wide{
-    flex-shrink:0; width:24px; height:24px; border-radius:8px; background:var(--pill);
-    border:none; color:var(--sub); font-size:13px; line-height:1; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; padding:0;
-  }
   .drop-indicator{
     background:var(--accent); border-radius:5px; flex-shrink:0;
     box-shadow:0 0 0 4px var(--accent-soft);
@@ -872,14 +859,13 @@ function ensureActiveDay(){
 // Card de exercício — usado tanto no board (paisagem/desktop) quanto na visão de abas (retrato),
 // pra manter os dois modos com exatamente o mesmo visual. A cor (fundo tingido + borda) já indica
 // o grupo muscular, então não repetimos o nome do músculo em texto.
-function buildExerciseCard(day, block, idx, opts={}){
+function buildExerciseCard(day, block, idx){
   const ex = exerciseById(block.exerciseId);
   if(!ex) return null;
-  const wide = !!opts.wide;
   const mainMuscle = ex.contrib[0][0];
   const mColor = MUSCLES[mainMuscle].color;
   const card = document.createElement('div');
-  card.className = 'card' + (wide ? ' card-wide' : '');
+  card.className = 'card';
   card.dataset.blockId = block.id;
   card.style.background = mColor + '26';
   card.style.borderLeft = '5px solid ' + mColor;
@@ -890,38 +876,25 @@ function buildExerciseCard(day, block, idx, opts={}){
     e.dataTransfer.setData('fromDayId', day.id);
   };
   card.ondragend = ()=> card.classList.remove('dragging');
-  if(wide){
-    // Retrato tem largura de sobra: número, nome e reps cabem numa linha só,
-    // aproveitando o espaço em vez de empilhar como na coluna estreita da paisagem.
-    card.innerHTML = `
-      <div class="card-main card-main-wide">
+  card.innerHTML = `
+    <div class="card-main">
+      <div class="card-actions">
+        <button class="card-del" title="Remover">×</button>
+      </div>
+      <div class="card-name">${ex.nome}</div>
+      <div class="card-sub">
         <span class="card-num">${idx+1}</span>
-        <div class="card-name card-name-wide">${ex.nome}</div>
-        <span class="card-reps card-reps-wide">${block.series}x ${block.repsMin}-${block.repsMax}</span>
-        <button class="card-del card-del-wide" title="Remover">×</button>
+        <span class="card-reps">${block.series}x ${block.repsMin}-${block.repsMax}</span>
       </div>
-    `;
-  } else {
-    card.innerHTML = `
-      <div class="card-main">
-        <div class="card-actions">
-          <button class="card-del" title="Remover">×</button>
-        </div>
-        <div class="card-name">${ex.nome}</div>
-        <div class="card-sub">
-          <span class="card-num">${idx+1}</span>
-          <span class="card-reps">${block.series}x ${block.repsMin}-${block.repsMax}</span>
-        </div>
-      </div>
-    `;
-  }
+    </div>
+  `;
   card.querySelector('.card-del').onclick = (e)=>{
     e.stopPropagation();
     day.blocks = day.blocks.filter(x=>x.id!==block.id);
     renderAll();
   };
   card.onclick = (e)=>{
-    if(e.target.closest('.card-actions, .card-del-wide')) return;
+    if(e.target.closest('.card-actions')) return;
     openEditBlock(day.id, block.id);
   };
   return card;
@@ -1140,7 +1113,7 @@ function renderPortraitTabs(board){
   };
 
   day.blocks.forEach((b, idx)=>{
-    const card = buildExerciseCard(day, b, idx, {wide:true});
+    const card = buildExerciseCard(day, b, idx);
     if(card) listCard.appendChild(card);
   });
 
