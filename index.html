@@ -64,21 +64,16 @@
      sobre fundo claro, legível nos dois temas. A caixa fechada do select continua com
      nosso estilo normal (--pill, --text etc.), isso só afeta o menu suspenso do sistema. */
   select{ color-scheme: light; }
-  /* Camada de fundo fixa — cobre exatamente a viewport visível a qualquer momento.
-     Fica antes de tudo no HTML (primeiro filho do body) e sem z-index negativo, então
-     a ordem normal do documento já garante que ela fica atrás do resto do conteúdo,
-     sem depender de truques de stacking context que podem falhar em alguns navegadores.
-     O fundo também é repetido no html/body como reforço (defesa em profundidade). */
-  .app-bg{
-    position:fixed; inset:0;
-    background:var(--wall);
-  }
+  /* Fundo: aplicado direto no html e no body (sem camada fixa separada e sem
+     background-attachment:fixed — esse último é conhecido por causar bugs de
+     renderização no Safari do iOS, incluindo conteúdo sumindo). min-height com
+     fallback pra -webkit-fill-available cobre o caso do 100vh/100dvh calcularem
+     uma altura diferente da área visível real. */
   html{ height:100%; height:-webkit-fill-available; background:var(--wall); }
   body{
     margin:0; color:var(--text); background:var(--wall);
     font-family:var(--sans); -webkit-font-smoothing:antialiased;
     min-height:100vh; min-height:100dvh; min-height:-webkit-fill-available;
-    height:100vh; height:100dvh; height:-webkit-fill-available;
     display:flex; flex-direction:column; overflow:hidden;
   }
 
@@ -148,7 +143,7 @@
   }
   .column{
     background:var(--sheet); border:1px solid var(--stroke); border-radius:var(--radius);
-    flex:1 1 240px; min-width:210px; max-width:300px; display:flex; flex-direction:column; overflow:hidden;
+    flex:1 1 300px; min-width:270px; max-width:380px; display:flex; flex-direction:column; overflow:hidden;
     -webkit-backdrop-filter:blur(30px) saturate(1.8); backdrop-filter:blur(30px) saturate(1.8);
     box-shadow:0 14px 34px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.16);
     transition:opacity 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
@@ -196,14 +191,14 @@
     display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px;
     line-height:1; padding:0; color:var(--sub);
   }
-  .card-title-row{ display:flex; align-items:flex-start; gap:8px; }
+  .card-title-row{ display:flex; align-items:center; gap:8px; }
   .card-name{
-    flex:1; min-width:0; font-size:14.5px; font-weight:700; line-height:1.25; letter-spacing:-0.01em;
-    color:var(--text); text-wrap:pretty;
+    flex:1; min-width:0; font-size:14.5px; font-weight:700; letter-spacing:-0.01em;
+    color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .card-num{
     flex-shrink:0; width:17px; height:17px; border-radius:50%; background:var(--pill);
-    display:flex; align-items:center; justify-content:center; margin-top:1px;
+    display:flex; align-items:center; justify-content:center;
     font-family:var(--mono); font-size:10px; font-weight:800; color:var(--sub);
   }
   .card-sub{ display:flex; align-items:center; gap:8px; margin-left:25px; }
@@ -437,7 +432,7 @@
       padding:2px calc(12px + env(safe-area-inset-right)) 64px calc(12px + env(safe-area-inset-left));
       gap:10px;
     }
-    .column{ flex:1 1 168px; min-width:158px; max-width:220px; }
+    .column{ flex:1 1 220px; min-width:200px; max-width:280px; }
     .col-header{ padding:9px 9px 8px; gap:5px; }
     .col-title{ font-size:13.5px; }
     .col-body{ padding:6px; gap:6px; }
@@ -457,7 +452,6 @@
 </head>
 <body>
 
-<div class="app-bg" aria-hidden="true"></div>
 <div class="auth-loading" id="auth-loading">
   <div class="footer-label">Carregando…</div>
 </div>
