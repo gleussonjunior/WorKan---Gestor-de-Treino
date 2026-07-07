@@ -501,13 +501,13 @@
 
 <script>
 // ---------- DADOS ----------
-// Paleta harmônica por região: empurrar (azuis) · puxar (roxos) · pernas (quentes) · core (verde)
+// Paleta harmônica por região: empurrar (azul→ciano→verde-água) · puxar (índigo→magenta) · pernas (quentes) · core (verde)
 const MUSCLES = {
-  peito:      { label:'Peito',       color:'#3F6FD8' },
-  ombro:      { label:'Ombro',       color:'#4F93E0' },
-  triceps:    { label:'Tríceps',     color:'#5FB0D6' },
-  costas:     { label:'Costas',      color:'#7A4FC0' },
-  biceps:     { label:'Bíceps',      color:'#9E6FD4' },
+  peito:      { label:'Peito',       color:'#2B5FCC' },
+  ombro:      { label:'Ombro',       color:'#2E9BD6' },
+  triceps:    { label:'Tríceps',     color:'#14B8A6' },
+  costas:     { label:'Costas',      color:'#5B3FC7' },
+  biceps:     { label:'Bíceps',      color:'#B347D6' },
   quadriceps: { label:'Quadríceps',  color:'#E08A3C' },
   posterior:  { label:'Posterior',   color:'#D9633F' },
   gluteo:     { label:'Glúteo',      color:'#D9A23C' },
@@ -828,9 +828,22 @@ function totalSeriesAllDays(){
 function fmt(n){ return Number.isInteger(n) ? n : n.toFixed(1); }
 
 // ---------- RENDER: MODO LIVRE ----------
+function isPortraitPhone(){
+  return window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches;
+}
+function ensureActiveDay(){
+  if(!state.activeDayId || !state.workoutDays.find(d=>d.id===state.activeDayId)){
+    state.activeDayId = state.workoutDays[0] ? state.workoutDays[0].id : null;
+  }
+}
 function renderBoard(){
   const board = document.getElementById('board');
   board.innerHTML = '';
+  ensureActiveDay();
+  if(isPortraitPhone()){
+    renderPortraitTabs(board);
+    return;
+  }
 
   // dragover/drop no board tratam a reordenação das colunas (treinos) inteiras
   board.ondragover = e=>{
@@ -930,6 +943,7 @@ function renderBoard(){
           </div>
           <div class="card-name">${ex.nome}</div>
           <div class="card-sub">
+            <span class="card-num">${idx+1}</span>
             <span class="card-muscle" style="color:${mColor}">${MUSCLES[mainMuscle].label}</span>
             <span class="card-reps">${b.series}x ${b.repsMin}-${b.repsMax}</span>
           </div>
@@ -1000,6 +1014,155 @@ function renderBoard(){
   });
 }
 
+// ---------- RENDER: MODO RETRATO (celular em pé) — abas + lista agrupada, um treino por vez ----------
+function renderPortraitTabs(board){
+  const day = state.workoutDays.find(d=>d.id===state.activeDayId);
+  const wrap = document.createElement('div');
+  wrap.className = 'portrait-wrap';
+
+  const header = document.createElement('div');
+  header.className = 'portrait-header';
+  header.innerHTML = `
+    <div class="portrait-title-row">
+      <input class="portrait-day-title" id="portrait-day-title" value="${day ? day.nome : ''}" ${day ? '' : 'disabled'} />
+      <button class="portrait-day-menu" id="portrait-day-menu" aria-label="Opções do treino" ${day ? '' : 'style="visibility:hidden;"'}>
+        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      </button>
+    </div>
+    <div class="portrait-tabs" id="portrait-tabs"></div>
+  `;
+  wrap.appendChild(header);
+
+  if(day){
+    header.querySelector('#portrait-day-title').onchange = e=>{
+      const name = e.target.value.trim();
+      if(!name){ e.target.value = day.nome; return; }
+      day.nome = name; saveToStorage(); renderAll();
+    };
+    header.querySelector('#portrait-day-menu').onclick = ()=> openPortraitDayMenu(day.id);
+  }
+
+  const tabsEl = header.querySelector('#portrait-tabs');
+  state.workoutDays.forEach(d=>{
+    const pill = document.createElement('button');
+    pill.className = 'portrait-tab-pill' + (day && d.id===day.id ? ' active' : '');
+    pill.textContent = d.nome;
+    pill.onclick = ()=>{ state.activeDayId = d.id; renderAll(); };
+    tabsEl.appendChild(pill);
+  });
+  const addPill = document.createElement('button');
+  addPill.className = 'portrait-tab-add';
+  addPill.innerHTML = '+';
+  addPill.setAttribute('aria-label','Novo treino');
+  addPill.onclick = ()=> addTreinoToActivePlan();
+  tabsEl.appendChild(addPill);
+
+  const listWrap = document.createElement('div');
+  listWrap.className = 'portrait-list-scroll';
+
+  if(!day){
+    listWrap.innerHTML = `<div class="portrait-empty">Nenhum treino ainda. Toque em + pra criar.</div>`;
+    wrap.appendChild(listWrap);
+    board.appendChild(wrap);
+    return;
+  }
+
+  const listCard = document.createElement('div');
+  listCard.className = 'portrait-list-card';
+  listCard.dataset.dayId = day.id;
+
+  listCard.ondragover = e=>{
+    e.preventDefault();
+    const afterEl = getDragAfterElement(listCard, e.clientY);
+    showDropIndicator(listCard, afterEl, 'horizontal');
+  };
+  listCard.ondrop = e=>{
+    e.preventDefault();
+    removeDropIndicator();
+    const blockId = e.dataTransfer.getData('blockId');
+    const fromDayId = e.dataTransfer.getData('fromDayId');
+    if(fromDayId !== day.id) return; // na visão de abas só reordena dentro do mesmo treino
+    const afterEl = getDragAfterElement(listCard, e.clientY);
+    moveBlock(blockId, fromDayId, day.id, afterEl ? afterEl.dataset.blockId : null);
+  };
+
+  day.blocks.forEach((b, idx)=>{
+    const ex = exerciseById(b.exerciseId);
+    if(!ex) return;
+    const mainMuscle = ex.contrib[0][0];
+    const mColor = MUSCLES[mainMuscle].color;
+    const row = document.createElement('div');
+    row.className = 'portrait-row';
+    row.dataset.blockId = b.id;
+    row.draggable = true;
+    row.ondragstart = e=>{
+      row.classList.add('dragging');
+      e.dataTransfer.setData('blockId', b.id);
+      e.dataTransfer.setData('fromDayId', day.id);
+    };
+    row.ondragend = ()=> row.classList.remove('dragging');
+    row.innerHTML = `
+      <span class="portrait-row-num">${idx+1}</span>
+      <span class="portrait-row-dot" style="background:${mColor}; box-shadow:0 0 8px ${mColor}"></span>
+      <div class="portrait-row-main">
+        <div class="portrait-row-name">${ex.nome}</div>
+        <div class="portrait-row-muscle" style="color:${mColor}">${MUSCLES[mainMuscle].label}</div>
+      </div>
+      <span class="portrait-row-reps">${b.series}x ${b.repsMin}-${b.repsMax}</span>
+      <svg class="portrait-row-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg>
+    `;
+    row.onclick = ()=> openEditBlock(day.id, b.id);
+    listCard.appendChild(row);
+  });
+
+  const addRow = document.createElement('div');
+  addRow.className = 'portrait-row portrait-row-add';
+  addRow.innerHTML = `
+    <span class="portrait-add-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" width="15" height="15"><path d="M12 5v14M5 12h14"/></svg>
+    </span>
+    <span class="portrait-add-label">Adicionar exercício</span>
+  `;
+  addRow.onclick = ()=> openAddExercise(day.id);
+  listCard.appendChild(addRow);
+
+  listWrap.appendChild(listCard);
+  wrap.appendChild(listWrap);
+  board.appendChild(wrap);
+}
+
+function openPortraitDayMenu(dayId){
+  const day = state.workoutDays.find(d=>d.id===dayId);
+  if(!day) return;
+  const modal = document.getElementById('modal-content');
+  modal.innerHTML = `
+    <h3>${day.nome}</h3>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+      <button class="btn-primary" id="pm-dup" style="width:100%; justify-content:center;">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Duplicar treino
+      </button>
+      <button class="btn-primary" id="pm-del" style="width:100%; justify-content:center; color:var(--danger);">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Remover treino
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="pm-close" style="width:100%;">Fechar</button>
+    </div>
+  `;
+  modal.querySelector('#pm-dup').onclick = ()=>{ closeModal(); duplicateDay(dayId); };
+  modal.querySelector('#pm-del').onclick = ()=>{
+    if(state.workoutDays.length<=1){ closeModal(); return; }
+    state.workoutDays = state.workoutDays.filter(d=>d.id!==dayId);
+    if(state.activeDayId === dayId){ state.activeDayId = state.workoutDays[0] ? state.workoutDays[0].id : null; }
+    closeModal();
+    renderAll();
+  };
+  modal.querySelector('#pm-close').onclick = closeModal;
+  document.getElementById('overlay').classList.add('show');
+}
+
 function duplicateDay(dayId){
   const day = state.workoutDays.find(d=>d.id===dayId);
   if(!day) return;
@@ -1011,6 +1174,7 @@ function duplicateDay(dayId){
   };
   const idx = state.workoutDays.findIndex(d=>d.id===dayId);
   state.workoutDays.splice(idx+1, 0, copy);
+  state.activeDayId = copy.id;
   renderAll();
 }
 
@@ -1301,6 +1465,8 @@ function openEditBlock(dayId, blockId){
   const block = day.blocks.find(b=>b.id===blockId);
   const ex = exerciseById(block.exerciseId);
   const modal = document.getElementById('modal-content');
+  const dayOptions = state.workoutDays.map(d=>`<option value="${d.id}" ${d.id===dayId?'selected':''}>${d.nome}</option>`).join('');
+  const showMove = state.workoutDays.length > 1;
   modal.innerHTML = `
     <h3>${ex.nome}</h3>
     <div class="row2">
@@ -1309,6 +1475,7 @@ function openEditBlock(dayId, blockId){
       <div class="field"><label>Reps max</label><input type="number" id="e-repmax" value="${block.repsMax}" min="1" /></div>
     </div>
     <button class="btn-primary" id="btn-swap-ex" style="width:100%; justify-content:center; margin-bottom:12px;">⇄ Trocar exercício</button>
+    ${showMove ? `<div class="field"><label>Mover para</label><select id="e-move-day">${dayOptions}</select></div>` : ''}
     <div class="modal-actions">
       <button class="btn-cancel" id="cancel-edit">Cancelar</button>
       <button class="btn-confirm" id="save-edit">Salvar</button>
@@ -1320,6 +1487,11 @@ function openEditBlock(dayId, blockId){
     block.series = parseInt(document.getElementById('e-series').value)||1;
     block.repsMin = parseInt(document.getElementById('e-repmin').value)||1;
     block.repsMax = parseInt(document.getElementById('e-repmax').value)||1;
+    const moveSel = document.getElementById('e-move-day');
+    if(moveSel && moveSel.value !== dayId){
+      moveBlock(blockId, dayId, moveSel.value, null);
+      state.activeDayId = moveSel.value;
+    }
     closeModal(); renderAll();
   };
   document.getElementById('overlay').classList.add('show');
@@ -1577,13 +1749,30 @@ function syncCardRowHeights(){
   }
 }
 let rowSyncResizeTimer = null;
+let lastPortraitPhoneState = null;
 window.addEventListener('resize', ()=>{
   clearTimeout(rowSyncResizeTimer);
-  rowSyncResizeTimer = setTimeout(syncCardRowHeights, 120);
+  rowSyncResizeTimer = setTimeout(()=>{
+    const nowPortrait = isPortraitPhone();
+    if(nowPortrait !== lastPortraitPhoneState){
+      lastPortraitPhoneState = nowPortrait;
+      renderAll();
+    } else {
+      syncCardRowHeights();
+    }
+  }, 120);
+});
+window.addEventListener('orientationchange', ()=>{
+  clearTimeout(rowSyncResizeTimer);
+  rowSyncResizeTimer = setTimeout(()=>{
+    lastPortraitPhoneState = isPortraitPhone();
+    renderAll();
+  }, 150);
 });
 
 function renderAll(){
   captureUndoIfChanged();
+  lastPortraitPhoneState = isPortraitPhone();
   renderBoard();
   renderVolumeWidget();
   updateTopbar();
