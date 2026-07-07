@@ -64,16 +64,21 @@
      sobre fundo claro, legível nos dois temas. A caixa fechada do select continua com
      nosso estilo normal (--pill, --text etc.), isso só afeta o menu suspenso do sistema. */
   select{ color-scheme: light; }
-  /* Fundo: aplicado direto no html e no body (sem camada fixa separada e sem
-     background-attachment:fixed — esse último é conhecido por causar bugs de
-     renderização no Safari do iOS, incluindo conteúdo sumindo). min-height com
-     fallback pra -webkit-fill-available cobre o caso do 100vh/100dvh calcularem
-     uma altura diferente da área visível real. */
-  html{ height:100%; height:-webkit-fill-available; background:var(--wall); }
+  /* Fundo — app rodando "Adicionado à Tela de Início" (modo standalone).
+     Nesse modo o iOS não tem barra do Safari aparecendo/sumindo, mas ainda assim
+     vh/dvh podem calcular uma altura diferente da tela real. A técnica padrão pra
+     esse cenário é travar html/body com position:fixed + inset:0: isso ancora os
+     dois exatamente nos limites da tela visível, sem depender de nenhuma unidade
+     de viewport. Nada aqui usa background-attachment:fixed (bug conhecido de
+     repintura no Safari do iOS, incluindo conteúdo sumindo). */
+  html{
+    position:fixed; inset:0; width:100%; height:100%;
+    background:var(--wall); overflow:hidden;
+  }
   body{
+    position:fixed; inset:0; width:100%; height:100%;
     margin:0; color:var(--text); background:var(--wall);
     font-family:var(--sans); -webkit-font-smoothing:antialiased;
-    min-height:100vh; min-height:100dvh; min-height:-webkit-fill-available;
     display:flex; flex-direction:column; overflow:hidden;
   }
 
@@ -335,7 +340,7 @@
 
   /* Login */
   .auth-loading, .auth-gate{
-    position:fixed; inset:0; z-index:200; background:var(--wall); background-attachment:fixed;
+    position:fixed; inset:0; z-index:200; background:var(--wall);
     display:flex; align-items:center; justify-content:center; padding:24px;
   }
   .auth-loading.hidden, .auth-gate.hidden{ display:none; }
