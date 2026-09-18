@@ -286,10 +286,11 @@
   .catalog-item .m{ font-size:10.5px; color:var(--faint); }
   .field{ margin-bottom:11px; }
   .field label{ display:block; font-size:11px; color:var(--sub); margin-bottom:5px; }
-  .field input, .field select{
+  .field input, .field select, .field textarea{
     width:100%; background:var(--pill); border:1px solid var(--stroke); color:var(--text);
     border-radius:var(--radius-sm); padding:10px 11px; font-size:13.5px; font-family:var(--sans);
   }
+  .field textarea{ font-family:var(--mono); font-size:12.5px; resize:vertical; }
   .row2{ display:flex; gap:8px; }
   .row2 .field{ flex:1; }
   .modal-actions{
@@ -730,6 +731,93 @@ function insertIntoCatalogByMuscle(newEx){
     if(order > targetOrder){ insertAt = i; break; }
   }
   catalog.splice(insertAt, 0, newEx);
+}
+
+function normalizeText(s){ return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim(); }
+
+// ---------- EXPORTAR / IMPORTAR TREINO EM TEXTO (pra colar num chatbot e trazer de volta) ----------
+function exportPlanText(plan){
+  const lines = [
+    `# ${plan.nome}`,
+    `<!-- Formato: cada exercício é uma linha "- Nome: SÉRIESxREPS_MIN-REPS_MAX". Mantenha esse formato ao editar, pra poder colar de volta no app. -->`,
+  ];
+  plan.workoutDays.forEach(day=>{
+    lines.push('');
+    lines.push(`## ${day.nome}`);
+    if(day.blocks.length===0) lines.push('(sem exercícios)');
+    day.blocks.forEach(b=>{
+      const ex = exerciseById(b.exerciseId);
+      if(!ex) return;
+      lines.push(`- ${ex.nome}: ${b.series}x${b.repsMin}-${b.repsMax}`);
+    });
+  });
+  return lines.join('\n');
+}
+
+async function copyPlanToClipboard(plan){
+  const text = exportPlanText(plan);
+  try{
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch(e){
+    // fallback pra contexto sem permissão de clipboard assíncrono
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    let ok = false;
+    try{ ok = document.execCommand('copy'); } catch(e2){ ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+}
+
+function findOrCreateExerciseByName(name, stats){
+  const norm = normalizeText(name);
+  const found = catalog.find(ex=> normalizeText(ex.nome) === norm);
+  if(found) return found.id;
+  const newEx = { id:id(), nome:name, contrib:[['core',1]] };
+  insertIntoCatalogByMuscle(newEx);
+  if(stats) stats.unmatched++;
+  return newEx.id;
+}
+
+// Lê o texto (original ou editado num chatbot) e recria dias + exercícios.
+// Exercício sem correspondência exata no catálogo vira um exercício novo com músculo "Core"
+// como placeholder — o usuário troca o grupo depois se quiser, editando o exercício.
+function parsePlanText(text){
+  const lines = text.split(/\r?\n/);
+  let planName = null;
+  const days = [];
+  let currentDay = null;
+  const stats = { unmatched:0 };
+  lines.forEach(raw=>{
+    const line = raw.trim();
+    if(!line || line.startsWith('<!--')) return;
+    if(line.startsWith('## ')){
+      currentDay = { id:id(), nome:line.slice(3).trim() || `Treino ${String.fromCharCode(65+days.length)}`, blocks:[], volumeExpanded:false };
+      days.push(currentDay);
+      return;
+    }
+    if(line.startsWith('# ')){
+      if(!planName) planName = line.slice(2).trim();
+      return;
+    }
+    const m = line.match(/^-\s*(.+?):\s*(\d+)\s*x\s*(\d+)(?:\s*-\s*(\d+))?/i);
+    if(m && currentDay){
+      const name = m[1].trim();
+      if(!name) return;
+      const series = parseInt(m[2],10) || 3;
+      const repsMin = parseInt(m[3],10) || 8;
+      const repsMax = m[4] ? parseInt(m[4],10) : repsMin;
+      const exId = findOrCreateExerciseByName(name, stats);
+      currentDay.blocks.push({ id:id(), exerciseId:exId, series, repsMin, repsMax });
+    }
+  });
+  if(days.length===0) return null;
+  return { nome: planName || 'Divisão importada', days, stats };
 }
 
 function dayVolume(day){
@@ -1257,7 +1345,7 @@ function openAddExercise(dayId){
     };
   };
 
-  const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const normalize = normalizeText;
 
   const showCatalog = ()=>{
     modal.querySelector('.tab-catalog').classList.add('active');
@@ -1467,6 +1555,10 @@ function openPlanSwitcher(){
   modal.innerHTML = `
     <h3>Divisões de treino</h3>
     <div id="plan-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <button class="btn-primary" id="btn-copy-plan" style="flex:1; justify-content:center;">📋 Copiar treino atual</button>
+      <button class="btn-primary" id="btn-import-plan" style="flex:1; justify-content:center;">📥 Colar treino</button>
+    </div>
     <button class="btn-primary" id="btn-new-plan" style="width:100%; justify-content:center;">+ Criar nova divisão</button>
     <div id="new-plan-form" style="display:none;">
       <div class="field" style="margin-top:12px;">
@@ -1487,6 +1579,11 @@ function openPlanSwitcher(){
   const newPlanForm = modal.querySelector('#new-plan-form');
   const closeRow = modal.querySelector('#plan-switcher-close');
   modal.querySelector('#cancel-plan').onclick = closeModal;
+  modal.querySelector('#btn-copy-plan').onclick = async ()=>{
+    const ok = await copyPlanToClipboard(state);
+    showUndoToast(ok ? 'Treino copiado!' : 'Não consegui copiar — copia manualmente');
+  };
+  modal.querySelector('#btn-import-plan').onclick = openImportPlanModal;
   newPlanBtn.onclick = ()=>{
     newPlanBtn.style.display = 'none';
     closeRow.style.display = 'none';
@@ -1602,6 +1699,43 @@ function duplicatePlan(planId){
   appState.plans.splice(idx+1, 0, copy);
   saveToStorage();
   renderPlanList();
+}
+
+function openImportPlanModal(){
+  const modal = document.getElementById('modal-content');
+  modal.innerHTML = `
+    <h3>Colar treino</h3>
+    <p style="font-size:12px; color:var(--sub); margin:0 0 12px; line-height:1.5;">Cole aqui o texto no mesmo formato que "Copiar treino atual" gera (original ou já ajustado num chatbot). Isso cria uma divisão nova, sem mexer nas que você já tem.</p>
+    <div class="field">
+      <textarea id="import-textarea" rows="10" placeholder="# Minha divisão
+## Treino A
+- Supino reto: 3x8-10"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancel-import">Cancelar</button>
+      <button class="btn-confirm" id="confirm-import">Importar</button>
+    </div>
+  `;
+  modal.querySelector('#cancel-import').onclick = closeModal;
+  modal.querySelector('#confirm-import').onclick = ()=>{
+    const text = document.getElementById('import-textarea').value;
+    const parsed = parsePlanText(text);
+    if(!parsed){
+      showUndoToast('Não achei nenhum exercício nesse texto');
+      return;
+    }
+    const newPlan = { id: id(), nome: parsed.nome, workoutDays: parsed.days };
+    appState.plans.push(newPlan);
+    appState.activePlanId = newPlan.id;
+    state = newPlan;
+    saveToStorage();
+    closeModal();
+    renderAll();
+    showUndoToast(parsed.stats.unmatched > 0
+      ? `Importado! ${parsed.stats.unmatched} exercício(s) novo(s) como Core`
+      : 'Treino importado!');
+  };
+  document.getElementById('overlay').classList.add('show');
 }
 
 // ---------- BOTÃO FLUTUANTE (+) ----------
